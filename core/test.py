@@ -90,3 +90,13 @@ def planck_006():
 
 def planck_007():
     planck_005(eps={1: 1, 2: 1., 2.5: 4})
+
+
+def planck_008():
+    body = Body(1)
+    lambdas = np.array([0.45, 0.6, 0.8, 1.0, 1.16, 1.2, 1.38, 1.61, 1.8, 2.0, 2.15])
+    T = 2500
+    _I = [body.intensity(wavelength=wavelength, T=T) for wavelength in lambdas]
+    i = np.argmax(_I)
+    print(lambdas[i])
+    print(np.asarray(list(zip(lambdas, _I, _I / np.max(_I)))[::-1]))

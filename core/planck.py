@@ -75,10 +75,11 @@ class Body(BlackBody):
 if __name__ == '__main__':
     import core.test
 
-    core.test.planck_001()
-    core.test.planck_002()
-    core.test.planck_003()
-    core.test.planck_004()
-    core.test.planck_005()
-    core.test.planck_006()
-    core.test.planck_007()
+    # core.test.planck_001()
+    # core.test.planck_002()
+    # core.test.planck_003()
+    # core.test.planck_004()
+    # core.test.planck_005()
+    # core.test.planck_006()
+    # core.test.planck_007()
+    core.test.planck_008()
