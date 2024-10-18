@@ -65,8 +65,8 @@ class Body(BlackBody):
         """
         Определение температуры по интенсивностям
         :param wavelengths: длины волн (в мкм)
-        :param intensities: интенсивности (в К)
-        :return: Интенсивность (Вт/см^2/мкм)
+        :param intensities: интенсивности (в Вт/см^2/мкм)
+        :return: Температура (в К)
         """
         popt, _ = curve_fit(self.intensity, wavelengths, intensities, bounds=(1e1, 1e4))
         return popt[0]

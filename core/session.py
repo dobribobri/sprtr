@@ -18,8 +18,6 @@ class Channel:
         self.gain = 1.
         self.alpha = 1.
         self.timedelta = 0.
-        self.t_start = 0.
-        self.t_stop = np.inf
 
     @property
     def data_calibrated(self):
@@ -33,20 +31,16 @@ class Channel:
         peak = np.argmax(self.data)
         return self.time[peak], self.data[peak]
 
-    def crop(self):
-        cond = (self.t_start <= self.time_synced) & (self.time_synced <= self.t_stop)
-        return self.time_synced[cond], self.data[cond]
-
     def erase(self):
         self.time = None
         self.data = None
 
-    def read(self, filename: str, format_='txt', n_interp: Union[int, None] = 4096):
+    def read(self, filepath: str, format_='txt', n_interp: Union[int, None] = 4096):
         if format_ == 'txt':
-            self.read_txt(filename, n_interp)
+            self.read_txt(filepath, n_interp)
 
-    def read_txt(self, filename: str, n_interp: Union[int, None] = 4096):
-        data = np.loadtxt(filename)
+    def read_txt(self, filepath: str, n_interp: Union[int, None] = 4096):
+        data = np.loadtxt(filepath)
         if data.shape != (len(data), 2):
             raise "Неверный формат данных"
 
@@ -55,8 +49,8 @@ class Channel:
             return
 
         t_start = data[0, 0]
-        t_end = data[-1, 0]
-        self.time = np.linspace(t_start, t_end, n_interp)
+        t_stop = data[-1, 0]
+        self.time = np.linspace(t_start, t_stop, n_interp)
         self.data = np.interp(self.time, data[:, 0], data[:, 1])
 
 
@@ -67,8 +61,9 @@ class Session:
         # Соответствие номера платы, номера канала и его частоты
         self.configuration = initials.configuration
 
-        # Число точек интерполяции при чтении данных из файла
-        self.n_interp = 4096
+        # Число точек интерполяции
+        self.n_interp_rf: Union[int, None] = 4096
+        self.n_interp_tp: Union[int, None] = 100
 
         # Настройка коэффициента усиления
         self.bb_adc_levels = initials.bb_adc_levels   # эталонные уровни сигналов АЦП
@@ -81,15 +76,16 @@ class Session:
         # Измерение образца
         self.eps_sample = 1.                          # излучательная способность образца
 
-    def read_channel(self, wavelength: float, filename: str, format_='txt', board: int = None, number: int = None):
+    def read_channel(self, wavelength: float, filepath: str, format_='txt', board: int = None, number: int = None):
         channel = Channel(wavelength=wavelength, board=board, number=number)
-        channel.read(filename, format_=format_, n_interp=self.n_interp)
+        channel.read(filepath, format_=format_, n_interp=self.n_interp_rf)
         self.channels.append(channel)
 
-    def read_channels(self, filenames: str, format_='txt'):
+    def read_channels(self, filepaths: list, format_='txt'):
         self.channels = []
-        for i, board, number, wavelength in enumerate(self.configuration):
-            self.read_channel(wavelength, filename=filenames[i], format_=format_, board=board, number=number)
+        for i, filepath in enumerate(filepaths):
+            board, number, wavelength = self.configuration[i]
+            self.read_channel(wavelength, filepath=filepath, format_=format_, board=board, number=number)
 
     def __goal_level(self, wavelength: float, T: float):
         return self.bb_adc_levels[np.round(wavelength, decimals=2)][np.round(T, decimals=0)]
@@ -105,32 +101,46 @@ class Session:
             goal_intensity = body.intensity(wavelength=channel.wavelength, T=self.T_rel_cal)
             channel.alpha = goal_intensity / np.mean(channel.gain * channel.data)
 
-    def time_sync(self):
+    def set_timedelta(self):
         t0, _ = self.channels[0].find_peak()
         self.channels[0].timedelta = 0.
         for i in range(1, len(self.channels)):
             t1, _ = self.channels[i].find_peak()
             self.channels[i].timedelta = t1 - t0
+
+    def get_temperature(self, t_start: float = None, t_stop: float = None, n_interp: int = None):
+        self.set_timedelta()
         bounds = np.asarray([(channel.time_synced[0], channel.time_synced[-1]) for channel in self.channels])
         left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
-        for i in range(len(self.channels)):
-            self.channels[i].t_start = left
-            self.channels[i].t_stop = right
-
-    def get_temperature(self, t_start: float = None, t_stop: float = None):
-        t_begin, t_end = self.get_time_bounds()
         if t_start is None:
-            t_start = t_begin
+            t_start = left
         if t_stop is None:
-            t_stop = t_end
+            t_stop = right
+        if n_interp is None:
+            n_interp = self.n_interp_tp
 
         sample = Body(eps=self.eps_sample)
-        wavelengths = [channel.wavelength for channel in self.channels]
-        for channel in self.channels:
-            time, data = channel.get_timeseries()
-            cond = (t_start <= time) & (time <= t_stop)
-            data = data[cond]
+        wavelengths = np.asarray([channel.wavelength for channel in self.channels])
 
+        data = []
+        lengths = []
+        for channel in self.channels:
+            cond = (t_start <= channel.time_synced) & (channel.time_synced <= t_stop)
+            lengths.append(np.count_nonzero(cond))
+            data.append([channel.time_synced[cond], channel.data_calibrated[cond]])
+
+        if n_interp is None:
+            n_interp = np.min(lengths)
+
+        time = np.linspace(t_start, t_stop, n_interp)
+        for i, channel in enumerate(self.channels):
+            data[i] = np.interp(time, data[i][0], data[i][1])
+        data = np.asarray(data).T
+
+        T = []
+        for spectrum in data:
+            T.append(sample.temperature(wavelengths=wavelengths, intensities=spectrum))
+        return time, np.asarray(T)
 
     def save(self, filename='session'):
         with open(filename, 'wb') as dump:
@@ -151,4 +161,5 @@ class Session:
 
 
 if __name__ == "__main__":
-    pass
+    import core.test
+    core.test.session_001()
