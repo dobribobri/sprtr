@@ -157,7 +157,7 @@ def session_001():
     # plt.legend(loc='best', frameon=False)
     # plt.show()
 
-    time, T = session.get_temperature(t_start=1e-5, t_stop=2e-5)
+    time, T = session.get_temperature(t_start=1e-5, t_stop=2e-5, parallel=True)
 
     plt.figure()
     for channel in session.channels:
