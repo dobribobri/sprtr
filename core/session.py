@@ -22,6 +22,10 @@ class Channel:
         self.timedelta = 0.  # смещение по времени
 
     @property
+    def data_gained(self):
+        return self.gain * self.data
+
+    @property
     def data_calibrated(self):
         return self.alpha * self.gain * self.data
 
@@ -58,7 +62,7 @@ class Channel:
 
 class Session:
     def __init__(self, channels: List[Channel] = None):
-        self.channels = channels
+        self.channels: List[Channel] = channels
 
         # Соответствие номера канала и его длины волны
         self.configuration = initials.configuration
@@ -87,6 +91,27 @@ class Session:
         # Данные, направленные на обработку
         self.__data = None
 
+    @property
+    def n_channels(self) -> int:
+        """
+        Количество каналов
+        """
+        return len(self.channels)
+
+    @property
+    def wavelengths(self) -> np.ndarray:
+        """
+        Используемые длины волн
+        """
+        return np.asarray([channel.wavelength for channel in self.channels])
+
+    @property
+    def sample(self) -> Body:
+        """
+        Исследуемый образец
+        """
+        return Body(eps=self.eps_sample)
+
     def set_configuration(self, configuration: List[Tuple[int, float]]):
         """
         Установить соответствия номер канала <--> длина волны
@@ -110,20 +135,6 @@ class Session:
         channel.read(filepath, format_=format_, n_interp=self.n_interp_rf)
         self.channels.append(channel)
 
-    @property
-    def wavelengths(self) -> np.ndarray:
-        """
-        Используемые длины волн
-        """
-        return np.asarray([channel.wavelength for channel in self.channels])
-
-    @property
-    def sample(self) -> Body:
-        """
-        Исследуемый образец
-        """
-        return Body(eps=self.eps_sample)
-
     @staticmethod
     def __goal_level(wavelength: float, T: float):
         return initials.bb_adc_levels[np.round(wavelength, decimals=2)][np.round(T, decimals=0)]
@@ -133,27 +144,32 @@ class Session:
         Установка коэффициента усиления.
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
-        for i, channel in enumerate(self.channels):
+        for i in range(self.n_channels):
             if values is None:
-                goal_level = Session.__goal_level(wavelength=channel.wavelength, T=self.T_gain_cal)
-                channel.gain = goal_level / np.mean(channel.data)
+                goal_level = Session.__goal_level(wavelength=self.channels[i].wavelength, T=self.T_gain_cal)
+                self.channels[i].gain = goal_level / np.mean(self.channels[i].data)
             else:
-                channel.gain = values[i]
+                self.channels[i].gain = values[i]
 
     def absolute_calibration(self):
         """
         Абсолютная калибровка
         """
         body = Body(eps=self.eps_abs_cal)
-        for channel in self.channels:
-            goal_intensity = body.intensity(wavelength=channel.wavelength, T=self.T_abs_cal)
-            channel.alpha = goal_intensity / np.mean(channel.gain * channel.data)
+        for i in range(self.n_channels):
+            goal_intensity = body.intensity(wavelength=self.channels[i].wavelength, T=self.T_abs_cal)
+            self.channels[i].alpha = goal_intensity / np.mean(self.channels[i].data_gained)
 
     def relative_calibration(self):
         """
         Относительная калибровка
         """
-        pass
+        body = Body(eps=self.eps_rel_cal)
+        I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths]
+        i_max = np.argmax(I_spectrum)
+        for i in range(len(self.channels)):
+            self.channels[i].alpha = I_spectrum[i] / I_spectrum[i_max] * \
+                                     np.mean(self.channels[i_max].data_gained) / np.mean(self.channels[i].data_gained)
 
     def set_timedelta(self):
         """
