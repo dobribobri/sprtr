@@ -26,11 +26,11 @@ class Channel:
         return self.gain * self.data
 
     @property
-    def data_calibrated(self):
+    def data_calibrated(self):  # калиброванные данные
         return self.alpha * self.gain * self.data
 
     @property
-    def time_synced(self):
+    def time_synced(self):  # ход времени с учетом смещения
         return self.time - self.timedelta
 
     def find_peak(self):
@@ -46,7 +46,7 @@ class Channel:
             self.read_txt(filepath, n_interp)
 
     def read_txt(self, filepath: str, n_interp: Union[int, None] = 4096):
-        data = np.loadtxt(filepath)
+        data = np.asarray(np.loadtxt(filepath))
         if data.shape != (len(data), 2):
             raise "Неверный формат данных"
 
@@ -61,8 +61,10 @@ class Channel:
 
 
 class Session:
-    def __init__(self, channels: List[Channel] = None):
-        self.channels: List[Channel] = channels
+    def __init__(self):
+        self.TimeSynchroChannels: List[Channel]
+        self.CalibrationChannels: List[Channel]
+        self.MeasurementChannels: List[Channel]
 
         # Соответствие номера канала и его длины волны
         self.configuration = initials.configuration

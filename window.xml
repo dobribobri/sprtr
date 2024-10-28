@@ -52,7 +52,7 @@
     </tkinter.Menu>
   </tkinter.Menu>
   <meta major="7" minor="0" name="version"/>
-  <tkinter.BooleanVar attr:name="use_ch01" attr:value="False"/>
+  <tkinter.BooleanVar attr:name="use_ch01" attr:value="True"/>
   <tkinter.BooleanVar attr:name="use_ch02" attr:value="True"/>
   <tkinter.BooleanVar attr:name="use_ch03" attr:value="True"/>
   <tkinter.BooleanVar attr:name="use_ch04" attr:value="True"/>
@@ -60,8 +60,8 @@
   <tkinter.BooleanVar attr:name="use_ch06" attr:value="True"/>
   <tkinter.BooleanVar attr:name="use_ch07" attr:value="True"/>
   <tkinter.BooleanVar attr:name="use_ch08" attr:value="True"/>
-  <tkinter.BooleanVar attr:name="use_ch09" attr:value="False"/>
-  <tkinter.BooleanVar attr:name="use_ch10" attr:value="False"/>
+  <tkinter.BooleanVar attr:name="use_ch09" attr:value="True"/>
+  <tkinter.BooleanVar attr:name="use_ch10" attr:value="True"/>
   <tkinter.DoubleVar attr:name="lambda01" attr:value="0.0"/>
   <tkinter.DoubleVar attr:name="lambda02" attr:value="0.0"/>
   <tkinter.DoubleVar attr:name="lambda03" attr:value="0.0"/>
@@ -82,26 +82,26 @@
   <tkinter.DoubleVar attr:name="deltat08" attr:value="0.0"/>
   <tkinter.DoubleVar attr:name="deltat09" attr:value="0.0"/>
   <tkinter.DoubleVar attr:name="deltat10" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha01" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha02" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha03" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha04" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha05" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha06" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha07" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha08" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha09" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="alpha10" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain01" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain02" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain03" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain04" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain05" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain06" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain07" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain08" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain09" attr:value="0.0"/>
-  <tkinter.DoubleVar attr:name="gain10" attr:value="0.0"/>
+  <tkinter.DoubleVar attr:name="alpha01" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha02" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha03" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha04" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha05" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha06" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha07" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha08" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha09" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="alpha10" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain01" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain02" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain03" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain04" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain05" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain06" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain07" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain08" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain09" attr:value="1.0"/>
+  <tkinter.DoubleVar attr:name="gain10" attr:value="1.0"/>
   <tkinter.BooleanVar attr:name="fr_interp_sync" attr:value="True"/>
   <tkinter.BooleanVar attr:name="fr_interp_cal" attr:value="True"/>
   <tkinter.BooleanVar attr:name="fr_interp_exp" attr:value="True"/>
@@ -156,44 +156,44 @@
         <tkinter.ttk.Spinbox name="spinbox_lambda_06" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_07" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_08" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_lambda_09" attr:to="10000" attr:increment="0.01" attr:state="disabled" attr:textvariable="lambda09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_lambda_10" attr:to="10000" attr:increment="0.01" attr:state="disabled" attr:textvariable="lambda10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_lambda_09" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_lambda_10" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
       </tkinter.ttk.Labelframe>
       <tkinter.ttk.Labelframe name="labelframe_sync" attr:text="Смещение &#10;по времени, пс" attr:layout="place" layout:width="140" layout:height="549" layout:x="258" layout:y="1" layout:bordermode="outside">
-        <tkinter.ttk.Spinbox name="spinbox_sync_01" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_02" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat02" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_03" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_04" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_05" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_06" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_07" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_08" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_09" attr:to="10000" attr:increment="0.01" attr:state="disabled" attr:textvariable="deltat09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_10" attr:to="10000" attr:increment="0.01" attr:state="disabled" attr:textvariable="deltat10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_01" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_02" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat02" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_03" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_04" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_05" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_06" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_07" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_08" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_09" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_10" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
       </tkinter.ttk.Labelframe>
       <tkinter.ttk.Labelframe name="labelframe_alpha" attr:text="Калибровочный&#10;коэффициент" attr:layout="place" layout:width="140" layout:height="549" layout:x="405" layout:y="1" layout:bordermode="outside">
         <tkinter.ttk.Spinbox name="spinbox_alpha_01" attr:to="100" attr:increment="0.01" attr:textvariable="alpha01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_02" attr:to="100" attr:increment="0.01" attr:textvariable="alpha02" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_03" attr:to="100" attr:increment="0.01" attr:textvariable="alpha03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_04" attr:to="100" attr:increment="0.01" attr:textvariable="alpha04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_05" attr:to="100" attr:increment="0.01" attr:textvariable="alpha05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_06" attr:to="100" attr:increment="0.01" attr:textvariable="alpha06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_02" attr:to="100" attr:increment="0.01" attr:textvariable="alpha02" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_03" attr:to="100" attr:increment="0.01" attr:textvariable="alpha03" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_04" attr:to="100" attr:increment="0.01" attr:textvariable="alpha04" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_05" attr:to="100" attr:increment="0.01" attr:textvariable="alpha05" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_06" attr:to="100" attr:increment="0.01" attr:textvariable="alpha06" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_07" attr:to="100" attr:increment="0.01" attr:textvariable="alpha07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_08" attr:to="100" attr:increment="0.01" attr:textvariable="alpha08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_09" attr:to="100" attr:increment="0.01" attr:state="disabled" attr:textvariable="alpha09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_10" attr:to="100" attr:increment="0.01" attr:state="disabled" attr:textvariable="alpha10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_09" attr:to="100" attr:increment="0.01" attr:textvariable="alpha09" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_10" attr:to="100" attr:increment="0.01" attr:textvariable="alpha10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
       </tkinter.ttk.Labelframe>
       <tkinter.ttk.Labelframe name="labelframe_gain" attr:text="Коэффициент&#10;усиления" attr:layout="place" layout:width="140" layout:height="549" layout:x="552" layout:y="1" layout:bordermode="outside">
-        <tkinter.ttk.Spinbox name="spinbox_gain_01" attr:to="100" attr:increment="0.01" attr:textvariable="gain01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_gain_02" attr:to="100" attr:increment="0.01" attr:textvariable="gain02" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_01" attr:to="100" attr:increment="0.01" attr:textvariable="gain01" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_02" attr:to="100" attr:increment="0.01" attr:textvariable="gain02" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_03" attr:to="100" attr:increment="0.01" attr:textvariable="gain03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_04" attr:to="100" attr:increment="0.01" attr:textvariable="gain04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_05" attr:to="100" attr:increment="0.01" attr:textvariable="gain05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_gain_06" attr:to="100" attr:increment="0.01" attr:textvariable="gain06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_06" attr:to="100" attr:increment="0.01" attr:textvariable="gain06" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_07" attr:to="100" attr:increment="0.01" attr:textvariable="gain07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_08" attr:to="100" attr:increment="0.01" attr:textvariable="gain08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_gain_09" attr:to="100" attr:increment="0.01" attr:state="disabled" attr:textvariable="gain09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_gain_10" attr:to="100" attr:increment="0.01" attr:state="disabled" attr:textvariable="gain10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_09" attr:to="100" attr:increment="0.01" attr:textvariable="gain09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_10" attr:to="100" attr:increment="0.01" attr:textvariable="gain10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
       </tkinter.ttk.Labelframe>
       <tkinter.LabelFrame name="labelframe_channels" attr:text="Канал" attr:layout="place" layout:width="96" layout:height="545" layout:x="8" layout:y="6" layout:bordermode="outside">
         <tkinter.Checkbutton name="checkbutton_channel_01" attr:text="#1" attr:variable="use_ch01" layout:width="60" layout:height="25" layout:x="10" layout:y="45" layout:bordermode="outside"/>
@@ -215,12 +215,12 @@
         <tkinter.Button name="button_load_ch03_sync" attr:command="load_ch03_sync" attr:text="Канал 3" layout:width="120" layout:height="35" layout:x="140" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch05_sync" attr:command="load_ch05_sync" attr:text="Канал 5" layout:width="120" layout:height="35" layout:x="270" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch07_sync" attr:command="load_ch07_sync" attr:text="Канал 7" layout:width="120" layout:height="35" layout:x="400" layout:y="70" layout:bordermode="outside"/>
-        <tkinter.Button name="button_load_ch09_sync" attr:command="load_ch09_sync" attr:state="disabled" attr:text="Канал 9" layout:width="120" layout:height="35" layout:x="530" layout:y="70" layout:bordermode="outside"/>
+        <tkinter.Button name="button_load_ch09_sync" attr:command="load_ch09_sync" attr:text="Канал 9" layout:width="120" layout:height="35" layout:x="530" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch02_sync" attr:command="load_ch02_sync" attr:text="Канал 2" layout:width="120" layout:height="35" layout:x="10" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch04_sync" attr:command="load_ch04_sync" attr:text="Канал 4" layout:width="120" layout:height="35" layout:x="140" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch06_sync" attr:command="load_ch06_sync" attr:text="Канал 6" layout:width="120" layout:height="35" layout:x="270" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch08_sync" attr:command="load_ch08_sync" attr:text="Канал 8" layout:width="120" layout:height="35" layout:x="400" layout:y="108" layout:bordermode="outside"/>
-        <tkinter.Button name="button_load_ch10_sync" attr:command="load_ch10_sync" attr:state="disabled" attr:text="Канал 10" layout:width="120" layout:height="35" layout:x="530" layout:y="108" layout:bordermode="outside"/>
+        <tkinter.Button name="button_load_ch10_sync" attr:command="load_ch10_sync" attr:text="Канал 10" layout:width="120" layout:height="35" layout:x="530" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_fr_interp_sync" attr:text="Интерполировать" attr:variable="fr_interp_sync" layout:width="147" layout:height="25" layout:x="16" layout:y="155" layout:bordermode="outside"/>
         <tkinter.Label name="label_n_fr_interp_sync" attr:text="Количество точек" layout:width="128" layout:height="25" layout:x="50" layout:y="188" layout:bordermode="outside"/>
         <tkinter.Entry name="entry_n_fr_interp_sync" attr:textvariable="fr_n_interp_sync" layout:width="80" layout:height="25" layout:x="185" layout:y="188" layout:bordermode="outside"/>
@@ -237,8 +237,8 @@
         <tkinter.Button name="button_apply_sync" attr:command="apply_sync" attr:text="Применить" layout:width="252" layout:height="35" layout:x="390" layout:y="35" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch07_sync" attr:text="7" attr:variable="sync_ch07" layout:width="50" layout:height="25" layout:x="203" layout:y="25" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch08_sync" attr:text="8" attr:variable="sync_ch08" layout:width="50" layout:height="25" layout:x="203" layout:y="58" layout:bordermode="outside"/>
-        <tkinter.Checkbutton name="checkbutton_ch09_sync" attr:state="disabled" attr:text="9" attr:variable="sync_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
-        <tkinter.Checkbutton name="checkbutton_ch10_sync" attr:state="disabled" attr:text="10" attr:variable="sync_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
+        <tkinter.Checkbutton name="checkbutton_ch09_sync" attr:text="9" attr:variable="sync_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
+        <tkinter.Checkbutton name="checkbutton_ch10_sync" attr:text="10" attr:variable="sync_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
     </tkinter.Frame>
     <tkinter.Frame name="frame_calibr" attr:layout="place" layout:text="Калибровка">
@@ -262,8 +262,8 @@
         <tkinter.Button name="button_apply_cal" attr:command="apply_cal" attr:text="Применить" layout:width="252" layout:height="35" layout:x="390" layout:y="35" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch07_cal" attr:text="7" attr:variable="cal_ch07" layout:width="50" layout:height="25" layout:x="203" layout:y="25" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch08_cal" attr:text="8" attr:variable="cal_ch08" layout:width="50" layout:height="25" layout:x="203" layout:y="58" layout:bordermode="outside"/>
-        <tkinter.Checkbutton name="checkbutton_ch09_cal" attr:state="disabled" attr:text="9" attr:variable="cal_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
-        <tkinter.Checkbutton name="checkbutton_ch10_cal" attr:state="disabled" attr:text="10" attr:variable="cal_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
+        <tkinter.Checkbutton name="checkbutton_ch09_cal" attr:text="9" attr:variable="cal_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
+        <tkinter.Checkbutton name="checkbutton_ch10_cal" attr:text="10" attr:variable="cal_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
       <tkinter.LabelFrame name="labelframe_load_cal" attr:text="Загрузка данных" attr:layout="place" layout:width="688" layout:height="232" layout:x="8" layout:y="3" layout:bordermode="outside">
         <tkinter.Button name="button_load_all_cal" attr:command="load_all_cal" attr:text="Загрузить" layout:width="200" layout:height="35" layout:x="10" layout:y="25" layout:bordermode="outside"/>
@@ -271,12 +271,12 @@
         <tkinter.Button name="button_load_ch03_cal" attr:command="load_ch03_cal" attr:text="Канал 3" layout:width="120" layout:height="35" layout:x="140" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch05_cal" attr:command="load_ch05_cal" attr:text="Канал 5" layout:width="120" layout:height="35" layout:x="270" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch07_cal" attr:command="load_ch07_cal" attr:text="Канал 7" layout:width="120" layout:height="35" layout:x="400" layout:y="70" layout:bordermode="outside"/>
-        <tkinter.Button name="button_load_ch09_cal" attr:command="load_ch09_cal" attr:state="disabled" attr:text="Канал 9" layout:width="120" layout:height="35" layout:x="530" layout:y="70" layout:bordermode="outside"/>
+        <tkinter.Button name="button_load_ch09_cal" attr:command="load_ch09_cal" attr:text="Канал 9" layout:width="120" layout:height="35" layout:x="530" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch02_cal" attr:command="load_ch02_cal" attr:text="Канал 2" layout:width="120" layout:height="35" layout:x="10" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch04_cal" attr:command="load_ch04_cal" attr:text="Канал 4" layout:width="120" layout:height="35" layout:x="140" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch06_cal" attr:command="load_ch06_cal" attr:text="Канал 6" layout:width="120" layout:height="35" layout:x="270" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch08_cal" attr:command="load_ch08_cal" attr:text="Канал 8" layout:width="120" layout:height="35" layout:x="400" layout:y="108" layout:bordermode="outside"/>
-        <tkinter.Button name="button_load_ch10_cal" attr:command="load_ch10_cal" attr:state="disabled" attr:text="Канал 10" layout:width="120" layout:height="35" layout:x="530" layout:y="108" layout:bordermode="outside"/>
+        <tkinter.Button name="button_load_ch10_cal" attr:command="load_ch10_cal" attr:text="Канал 10" layout:width="120" layout:height="35" layout:x="530" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_fr_interp_cal" attr:text="Интерполировать" attr:variable="fr_interp_cal" layout:width="147" layout:height="25" layout:x="16" layout:y="155" layout:bordermode="outside"/>
         <tkinter.Label name="label_n_fr_interp_cal" attr:text="Количество точек" layout:width="128" layout:height="25" layout:x="50" layout:y="188" layout:bordermode="outside"/>
         <tkinter.Entry name="entry_n_fr_interp_cal" attr:textvariable="fr_n_interp_cal" layout:width="80" layout:height="25" layout:x="185" layout:y="188" layout:bordermode="outside"/>
@@ -291,12 +291,12 @@
         <tkinter.Button name="button_load_ch03_exp" attr:command="load_ch03_exp" attr:text="Канал 3" layout:width="120" layout:height="35" layout:x="140" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch05_exp" attr:command="load_ch05_exp" attr:text="Канал 5" layout:width="120" layout:height="35" layout:x="270" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch07_exp" attr:command="load_ch07_exp" attr:text="Канал 7" layout:width="120" layout:height="35" layout:x="400" layout:y="70" layout:bordermode="outside"/>
-        <tkinter.Button name="button_load_ch09_exp" attr:command="load_ch09_exp" attr:state="disabled" attr:text="Канал 9" layout:width="120" layout:height="35" layout:x="530" layout:y="70" layout:bordermode="outside"/>
+        <tkinter.Button name="button_load_ch09_exp" attr:command="load_ch09_exp" attr:text="Канал 9" layout:width="120" layout:height="35" layout:x="530" layout:y="70" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch02_exp" attr:command="load_ch02_exp" attr:text="Канал 2" layout:width="120" layout:height="35" layout:x="10" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch04_exp" attr:command="load_ch04_exp" attr:text="Канал 4" layout:width="120" layout:height="35" layout:x="140" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch06_exp" attr:command="load_ch06_exp" attr:text="Канал 6" layout:width="120" layout:height="35" layout:x="270" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Button name="button_load_ch08_exp" attr:command="load_ch08_exp" attr:text="Канал 8" layout:width="120" layout:height="35" layout:x="400" layout:y="108" layout:bordermode="outside"/>
-        <tkinter.Button name="button_load_ch10_exp" attr:command="load_ch10_exp" attr:state="disabled" attr:text="Канал 10" layout:width="120" layout:height="35" layout:x="530" layout:y="108" layout:bordermode="outside"/>
+        <tkinter.Button name="button_load_ch10_exp" attr:command="load_ch10_exp" attr:text="Канал 10" layout:width="120" layout:height="35" layout:x="530" layout:y="108" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_fr_interp_exp" attr:text="Интерполировать" attr:variable="fr_interp_exp" layout:width="147" layout:height="25" layout:x="16" layout:y="155" layout:bordermode="outside"/>
         <tkinter.Label name="label_n_fr_interp_exp" attr:text="Количество точек" layout:width="128" layout:height="25" layout:x="50" layout:y="185" layout:bordermode="outside"/>
         <tkinter.Entry name="entry_n_fr_interp_exp" attr:textvariable="fr_n_interp_exp" layout:width="80" layout:height="25" layout:x="185" layout:y="185" layout:bordermode="outside"/>
@@ -322,8 +322,8 @@
         <tkinter.Button name="button_calc_exp" attr:command="calculate_temperatures" attr:text="Рассчитать" layout:width="250" layout:height="35" layout:x="390" layout:y="35" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch07_calc_exp" attr:text="7" attr:variable="temp_ch07" layout:width="50" layout:height="25" layout:x="203" layout:y="25" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch08_calc_exp" attr:text="8" attr:variable="temp_ch08" layout:width="50" layout:height="25" layout:x="203" layout:y="58" layout:bordermode="outside"/>
-        <tkinter.Checkbutton name="checkbutton_ch09_calc_exp" attr:state="disabled" attr:text="9" attr:variable="temp_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
-        <tkinter.Checkbutton name="checkbutton_ch10_calc_exp" attr:state="disabled" attr:text="10" attr:variable="temp_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
+        <tkinter.Checkbutton name="checkbutton_ch09_calc_exp" attr:text="9" attr:variable="temp_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
+        <tkinter.Checkbutton name="checkbutton_ch10_calc_exp" attr:text="10" attr:variable="temp_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
       <tkinter.Button name="button_plot_exp" attr:command="show_temperatures" attr:text="График" layout:width="250" layout:height="35" layout:x="12" layout:y="515" layout:bordermode="outside"/>
       <tkinter.Checkbutton name="checkbutton_3D_mode_calc_exp" attr:text="3D-режим" attr:variable="mode_3D" layout:width="99" layout:height="25" layout:x="264" layout:y="521" layout:bordermode="outside"/>
