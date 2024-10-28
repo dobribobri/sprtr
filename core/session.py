@@ -186,6 +186,10 @@ class Session:
         # Данные, направленные на обработку
         self.__data = None
 
+    def set_stage(self, stage: Stages = Stages.Measurement):
+        for i in range(len(self.channels)):
+            self.channels[i].current_stage = stage
+
     @property
     def used_indexes(self) -> list:
         """
@@ -276,21 +280,21 @@ class Session:
         Установка коэффициента усиления.
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
-        for i in self.used_indexes:
+        for i, index in enumerate(self.used_indexes):
             if values is None:
-                goal_level = Session.__goal_level(wavelength=self.channels[i].wavelength, T=self.T_gain_cal)
-                self.channels[i].gain = goal_level / np.mean(self.channels[i].data)
+                goal_level = Session.__goal_level(wavelength=self.channels[index].wavelength, T=self.T_gain_cal)
+                self.channels[index].gain = goal_level / np.mean(self.channels[index].data)
             else:
-                self.channels[i].gain = values[i]
+                self.channels[index].gain = values[i]
 
     def absolute_calibration(self):
         """
         Абсолютная калибровка
         """
         body = Body(eps=self.eps_abs_cal)
-        for i in self.mask_indexes:
-            goal_intensity = body.intensity(wavelength=self.channels[i].wavelength, T=self.T_abs_cal)
-            self.channels[i].alpha = goal_intensity / np.mean(self.channels[i].data_gained)
+        for index in self.mask_indexes:
+            goal_intensity = body.intensity(wavelength=self.channels[index].wavelength, T=self.T_abs_cal)
+            self.channels[index].alpha = goal_intensity / np.mean(self.channels[index].data_gained)
 
     def relative_calibration(self):
         """
@@ -318,9 +322,7 @@ class Session:
     def process(self, i):
         return i, self.sample.temperature(wavelengths=self.wavelengths, intensities=self.__data[i])
 
-    def get_temperature(self, t_start: float = None, t_stop: float = None,
-                        n_interp: int = None,
-                        parallel: bool = True):
+    def get_temperature(self, t_start: float = None, t_stop: float = None, parallel: bool = True):
         """
         Расчет температуры по Планку
         """
@@ -332,8 +334,6 @@ class Session:
             t_start = left
         if t_stop is None:
             t_stop = right
-        if n_interp is None:
-            n_interp = self.tp_n_interp_exp
 
         data = []
         lengths = []
@@ -342,11 +342,12 @@ class Session:
             lengths.append(np.count_nonzero(cond))
             data.append([self.channels[i].time_synced[cond], self.channels[i].data_calibrated[cond]])
 
+        n_interp = self.tp_n_interp_exp
         if n_interp is None:
             n_interp = np.min(lengths)
 
         time = np.linspace(t_start, t_stop, n_interp)
-        for i in self.mask_indexes:
+        for i, _ in enumerate(self.mask_indexes):
             data[i] = np.interp(time, data[i][0], data[i][1])
         self.__data = np.asarray(data).T
 
