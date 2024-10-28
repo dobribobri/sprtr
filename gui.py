@@ -287,6 +287,8 @@ def update_state(*args):
 if __name__ == "__main__":
     root = AppBuilder(path="window.xml")
 
+    root.notebook_main.select(3)
+
     # session = Session()
     usage = [root.use_ch01, root.use_ch02, root.use_ch03, root.use_ch04, root.use_ch05,
              root.use_ch06, root.use_ch07, root.use_ch08, root.use_ch09, root.use_ch10]

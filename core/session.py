@@ -1,4 +1,5 @@
 from typing import Union, List, Tuple
+from enum import Enum
 import numpy as np
 import dill
 import tqdm
@@ -7,19 +8,90 @@ import core.initials as initials
 from core.planck import Body
 
 
+class Stages(Enum):
+    # Initialized = 0
+    TimeSynchro = 1  # синхронизация каналов по времени
+    Calibration = 2  # калибровка каналов
+    Measurement = 3  # проведение эксперимента
+
+
+class Series:
+    def __init__(self):
+        self.time: np.ndarray = None   # отсчеты времени
+        self.data: np.ndarray = None   # значения
+        self.mask: bool = True
+
+
 class Channel:
-    def __init__(self, wavelength: float, timeseries: np.ndarray = None, board: int = None, number: int = None):
+    def __init__(self, wavelength: float,
+                 board: int = None, number: int = None,
+                 used: bool = True, current_stage: Stages = Stages.TimeSynchro):
+        self.used = used  # использовать канал?
+        self.current_stage = current_stage  # текущий этап
+
         self.board = board  # номер платы
         self.number = number  # номер канала
         self.wavelength = wavelength  # длина волны
-        if timeseries is None:
-            self.time, self.data = None, None
-        else:
-            self.time = timeseries[:, 0]  # отсчеты времени
-            self.data = timeseries[:, 1]  # значения с АЦП
+
+        self.TimeSynchroSeries = Series()  # данные сеанса для определения временных сдвигов
+        self.CalibrationSeries = Series()  # данные калибровочного сеанса
+        self.MeasurementSeries = Series()  # данные эксперимента
+
         self.gain = 1.  # коэффициент усиления
         self.alpha = 1.  # калибровочный коэффициент, переводящий уровни с АЦП в интенсивности АЧТ
-        self.timedelta = 0.  # смещение по времени
+        self.timedelta = 0.  # смещение по
+
+    @property
+    def series(self) -> Series:
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                return self.TimeSynchroSeries
+            case Stages.Calibration.value:
+                return self.CalibrationSeries
+            case _:
+                return self.MeasurementSeries
+
+    @property
+    def mask(self) -> bool:
+        return self.series.mask
+
+    @mask.setter
+    def mask(self, _mask):
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                self.TimeSynchroSeries.mask = _mask
+            case Stages.Calibration.value:
+                self.CalibrationSeries.mask = _mask
+            case _:
+                self.MeasurementSeries.mask = _mask
+
+    @property
+    def data(self):
+        return self.series.data
+
+    @data.setter
+    def data(self, _data):
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                self.TimeSynchroSeries.data = _data
+            case Stages.Calibration.value:
+                self.CalibrationSeries.data = _data
+            case _:
+                self.MeasurementSeries.data = _data
+
+    @property
+    def time(self):
+        return self.series.time
+
+    @time.setter
+    def time(self, _time):
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                self.TimeSynchroSeries.time = _time
+            case Stages.Calibration.value:
+                self.CalibrationSeries.time = _time
+            case _:
+                self.MeasurementSeries.time = _time
 
     @property
     def data_gained(self):
@@ -37,9 +109,19 @@ class Channel:
         peak = np.argmax(self.data)
         return self.time[peak], self.data[peak]
 
-    def erase(self):
-        self.time = None
-        self.data = None
+    def erase_current(self):
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                self.TimeSynchroSeries = Series()
+            case Stages.Calibration.value:
+                self.CalibrationSeries = Series()
+            case _:
+                self.MeasurementSeries = Series()
+
+    def clear_all(self):
+        self.TimeSynchroSeries = Series()
+        self.CalibrationSeries = Series()
+        self.MeasurementSeries = Series()
 
     def read(self, filepath: str, format_='txt', n_interp: Union[int, None] = 4096):
         if format_ == 'txt':
@@ -61,10 +143,8 @@ class Channel:
 
 
 class Session:
-    def __init__(self):
-        self.TimeSynchroChannels: List[Channel]
-        self.CalibrationChannels: List[Channel]
-        self.MeasurementChannels: List[Channel]
+    def __init__(self, channels: List[Channel] = None):
+        self.channels: List[Channel] = channels  # Каналы
 
         # Соответствие номера канала и его длины волны
         self.configuration = initials.configuration
@@ -94,18 +174,47 @@ class Session:
         self.__data = None
 
     @property
-    def n_channels(self) -> int:
+    def used_indexes(self) -> list:
         """
-        Количество каналов
+        Индексы используемых каналов
         """
-        return len(self.channels)
+        if self.channels:
+            return [i for i, channel in enumerate(self.channels) if channel.used]
+        return []
+
+    @used_indexes.setter
+    def used_indexes(self, indexes):
+        for i in range(len(self.channels)):
+            if i in indexes:
+                self.channels[i].used = True
+            else:
+                self.channels[i].used = False
+                self.channels[i].TimeSynchroSeries.mask = False
+                self.channels[i].CalibrationSeries.mask = False
+                self.channels[i].MeasurementSeries.mask = False
+
+    @property
+    def mask_indexes(self) -> list:
+        _mask = []
+        for i in self.used_indexes:
+            if self.channels[i].mask:
+                _mask.append(i)
+        return _mask
+
+    @mask_indexes.setter
+    def mask_indexes(self, indexes):
+        for i in self.used_indexes:
+            if i in indexes:
+                self.channels[i].mask = True
+            else:
+                self.channels[i].mask = False
 
     @property
     def wavelengths(self) -> np.ndarray:
         """
         Используемые длины волн
         """
-        return np.asarray([channel.wavelength for channel in self.channels])
+        return np.asarray([self.channels[i].wavelength for i in self.mask_indexes])
 
     @property
     def sample(self) -> Body:
@@ -113,12 +222,6 @@ class Session:
         Исследуемый образец
         """
         return Body(eps=self.eps_sample)
-
-    def update_configuration(self, configuration: List[Tuple[int, float]]):
-        """
-        Установить соответствия номер канала <--> длина волны
-        """
-        self.configuration = configuration
 
     def read_channels(self, filepaths: list, format_='txt'):
         """
@@ -139,6 +242,9 @@ class Session:
 
     @staticmethod
     def __goal_level(wavelength: float, T: float):
+        """
+        Эталонный уровень сигнала с АЦП при измерении АЧТ с заданной температурой на данной длине волны
+        """
         return initials.bb_adc_levels[np.round(wavelength, decimals=2)][np.round(T, decimals=0)]
 
     def set_gain(self, values: Union[list, np.ndarray] = None):
@@ -146,7 +252,7 @@ class Session:
         Установка коэффициента усиления.
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
-        for i in range(self.n_channels):
+        for i in self.used_indexes:
             if values is None:
                 goal_level = Session.__goal_level(wavelength=self.channels[i].wavelength, T=self.T_gain_cal)
                 self.channels[i].gain = goal_level / np.mean(self.channels[i].data)
@@ -158,7 +264,7 @@ class Session:
         Абсолютная калибровка
         """
         body = Body(eps=self.eps_abs_cal)
-        for i in range(self.n_channels):
+        for i in self.mask_indexes:
             goal_intensity = body.intensity(wavelength=self.channels[i].wavelength, T=self.T_abs_cal)
             self.channels[i].alpha = goal_intensity / np.mean(self.channels[i].data_gained)
 
@@ -169,7 +275,8 @@ class Session:
         body = Body(eps=self.eps_rel_cal)
         I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths]
         i_max = np.argmax(I_spectrum)
-        for i in range(len(self.channels)):
+        for i in self.mask_indexes:
+            # noinspection PyTypeChecker
             self.channels[i].alpha = I_spectrum[i] / I_spectrum[i_max] * \
                                      np.mean(self.channels[i_max].data_gained) / np.mean(self.channels[i].data_gained)
 
@@ -177,9 +284,10 @@ class Session:
         """
         Вычислить смещения каналов по времени
         """
-        t0, _ = self.channels[0].find_peak()
-        self.channels[0].timedelta = 0.
-        for i in range(1, len(self.channels)):
+        first = self.mask_indexes[0]
+        t0, _ = self.channels[first].find_peak()
+        self.channels[first].timedelta = 0.
+        for i in self.mask_indexes[1:]:
             t1, _ = self.channels[i].find_peak()
             self.channels[i].timedelta = t1 - t0
 
@@ -187,8 +295,9 @@ class Session:
         """
         Временной интервал измерений спектров
         """
-        self.set_timedelta()
-        bounds = np.asarray([(channel.time_synced[0], channel.time_synced[-1]) for channel in self.channels])
+        # self.set_timedelta()
+        bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
+                             for i in self.mask_indexes])
         left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
         return left, right
 
@@ -212,16 +321,16 @@ class Session:
 
         data = []
         lengths = []
-        for channel in self.channels:
-            cond = (t_start <= channel.time_synced) & (channel.time_synced <= t_stop)
+        for i in self.mask_indexes:
+            cond = (t_start <= self.channels[i].time_synced) & (self.channels[i].time_synced <= t_stop)
             lengths.append(np.count_nonzero(cond))
-            data.append([channel.time_synced[cond], channel.data_calibrated[cond]])
+            data.append([self.channels[i].time_synced[cond], self.channels[i].data_calibrated[cond]])
 
         if n_interp is None:
             n_interp = np.min(lengths)
 
         time = np.linspace(t_start, t_stop, n_interp)
-        for i, channel in enumerate(self.channels):
+        for i in self.mask_indexes:
             data[i] = np.interp(time, data[i][0], data[i][1])
         self.__data = np.asarray(data).T
 
@@ -267,7 +376,7 @@ class Session:
         Очистить данные каналов
         """
         for channel in self.channels:
-            channel.erase()
+            channel.erase_current()
 
 
 if __name__ == "__main__":
