@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple
+from typing import Union, List
 from enum import Enum
 import numpy as np
 import dill
@@ -19,13 +19,15 @@ class Series:
     def __init__(self):
         self.time: np.ndarray = None   # отсчеты времени
         self.data: np.ndarray = None   # значения
-        self.mask: bool = True
+
+        self.mask: bool = True         # применять обработку
+        self.n_interp: Union[int, None] = 1024      # число точек интерполяции при загрузке из файла
 
 
 class Channel:
     def __init__(self, wavelength: float,
                  board: int = None, number: int = None,
-                 used: bool = True, current_stage: Stages = Stages.TimeSynchro):
+                 used: bool = True, current_stage: Stages = Stages.Measurement):
         self.used = used  # использовать канал?
         self.current_stage = current_stage  # текущий этап
 
@@ -52,25 +54,11 @@ class Channel:
                 return self.MeasurementSeries
 
     @property
-    def mask(self) -> bool:
-        return self.series.mask
-
-    @mask.setter
-    def mask(self, _mask):
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                self.TimeSynchroSeries.mask = _mask
-            case Stages.Calibration.value:
-                self.CalibrationSeries.mask = _mask
-            case _:
-                self.MeasurementSeries.mask = _mask
-
-    @property
-    def data(self):
+    def data(self) -> np.ndarray:
         return self.series.data
 
     @data.setter
-    def data(self, _data):
+    def data(self, _data: np.ndarray):
         match self.current_stage.value:
             case Stages.TimeSynchro.value:
                 self.TimeSynchroSeries.data = _data
@@ -80,11 +68,11 @@ class Channel:
                 self.MeasurementSeries.data = _data
 
     @property
-    def time(self):
+    def time(self) -> np.ndarray:
         return self.series.time
 
     @time.setter
-    def time(self, _time):
+    def time(self, _time: np.ndarray):
         match self.current_stage.value:
             case Stages.TimeSynchro.value:
                 self.TimeSynchroSeries.time = _time
@@ -94,22 +82,50 @@ class Channel:
                 self.MeasurementSeries.time = _time
 
     @property
-    def data_gained(self):
+    def data_gained(self) -> np.ndarray:
         return self.gain * self.data
 
     @property
-    def data_calibrated(self):  # калиброванные данные
+    def data_calibrated(self) -> np.ndarray:  # калиброванные данные
         return self.alpha * self.gain * self.data
 
     @property
-    def time_synced(self):  # ход времени с учетом смещения
+    def time_synced(self) -> np.ndarray:  # ход времени с учетом смещения
         return self.time - self.timedelta
 
-    def find_peak(self):
+    def find_peak(self) -> tuple:
         peak = np.argmax(self.data)
         return self.time[peak], self.data[peak]
 
-    def erase_current(self):
+    @property
+    def mask(self) -> bool:
+        return self.series.mask
+
+    @mask.setter
+    def mask(self, _mask: bool):
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                self.TimeSynchroSeries.mask = _mask
+            case Stages.Calibration.value:
+                self.CalibrationSeries.mask = _mask
+            case _:
+                self.MeasurementSeries.mask = _mask
+
+    @property
+    def n_interp(self) -> Union[int, None]:
+        return self.series.n_interp
+
+    @n_interp.setter
+    def n_interp(self, _val: Union[int, None]):
+        match self.current_stage.value:
+            case Stages.TimeSynchro.value:
+                self.TimeSynchroSeries.n_interp = _val
+            case Stages.Calibration.value:
+                self.CalibrationSeries.n_interp = _val
+            case _:
+                self.MeasurementSeries.n_interp = _val
+
+    def erase_current(self) -> None:
         match self.current_stage.value:
             case Stages.TimeSynchro.value:
                 self.TimeSynchroSeries = Series()
@@ -118,27 +134,27 @@ class Channel:
             case _:
                 self.MeasurementSeries = Series()
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         self.TimeSynchroSeries = Series()
         self.CalibrationSeries = Series()
         self.MeasurementSeries = Series()
 
-    def read(self, filepath: str, format_='txt', n_interp: Union[int, None] = 4096):
+    def read(self, filepath: str, format_='txt'):
         if format_ == 'txt':
-            self.read_txt(filepath, n_interp)
+            self.read_txt(filepath)
 
-    def read_txt(self, filepath: str, n_interp: Union[int, None] = 4096):
+    def read_txt(self, filepath: str):
         data = np.asarray(np.loadtxt(filepath))
         if data.shape != (len(data), 2):
             raise "Неверный формат данных"
 
-        if n_interp is None:
+        if self.n_interp is None:
             self.time, self.data = data[:, 0], data[:, 1]
             return
 
         t_start = data[0, 0]
         t_stop = data[-1, 0]
-        self.time = np.linspace(t_start, t_stop, n_interp)
+        self.time = np.linspace(t_start, t_stop, self.n_interp)
         self.data = np.interp(self.time, data[:, 0], data[:, 1])
 
 
@@ -149,23 +165,20 @@ class Session:
         # Соответствие номера канала и его длины волны
         self.configuration = initials.configuration
 
-        # Число точек интерполяции
-        self.n_interp_rf: Union[int, None] = 4096  # при чтении данных из файла
-        self.n_interp_tp: Union[int, None] = 1000  # при расчете значений температуры
-
         # Настройка коэффициента усиления
         self.T_gain_cal = 2500                        # температура эталона
 
+        # Калибровка
         # Абсолютная калибровка
         self.T_abs_cal = 2500                         # температура эталона
         self.eps_abs_cal = 1                          # излучательная способность эталона
-
         # Относительная калибровка
         self.T_rel_cal = 2500                         # температура эталона
         self.eps_rel_cal = 1                          # излучательная способность эталона
 
         # Измерение образца
         self.eps_sample = 1.                          # излучательная способность образца
+        self.tp_n_interp_exp: Union[int, None] = 100               # число точек интерполяции при расчете
 
         # Кол-во ядер
         self.n_workers = 8
@@ -223,21 +236,32 @@ class Session:
         """
         return Body(eps=self.eps_sample)
 
-    def read_channels(self, filepaths: list, format_='txt'):
+    def read_channels(self,
+                      filepaths: list,
+                      format_='txt',
+                      board: int = None,
+                      current_stage: Stages = Stages.Measurement):
         """
         Прочитать данные из файлов filepaths и записать в каналы в соответствии с конфигурацией
         """
         self.channels = []
         for i, filepath in enumerate(filepaths):
             number, wavelength = self.configuration[i]
-            self.read_channel(wavelength, filepath=filepath, format_=format_, number=number)
+            self.read_channel(wavelength, filepath=filepath, format_=format_,
+                              board=board, number=number, current_stage=current_stage)
 
-    def read_channel(self, wavelength: float, filepath: str, format_='txt', board: int = None, number: int = None):
+    def read_channel(self,
+                     wavelength: float,
+                     filepath: str,
+                     format_='txt',
+                     board: int = None,
+                     number: int = None,
+                     current_stage: Stages = Stages.Measurement):
         """
         Прочитать данные из файла filepath и записать в новый канал
         """
-        channel = Channel(wavelength=wavelength, board=board, number=number)
-        channel.read(filepath, format_=format_, n_interp=self.n_interp_rf)
+        channel = Channel(wavelength=wavelength, board=board, number=number, current_stage=current_stage)
+        channel.read(filepath, format_=format_)
         self.channels.append(channel)
 
     @staticmethod
@@ -275,10 +299,10 @@ class Session:
         body = Body(eps=self.eps_rel_cal)
         I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths]
         i_max = np.argmax(I_spectrum)
-        for i in self.mask_indexes:
-            # noinspection PyTypeChecker
-            self.channels[i].alpha = I_spectrum[i] / I_spectrum[i_max] * \
-                                     np.mean(self.channels[i_max].data_gained) / np.mean(self.channels[i].data_gained)
+        index_max = self.mask_indexes[i_max]
+        for i, index in enumerate(self.mask_indexes):
+            self.channels[index].alpha = I_spectrum[i] / I_spectrum[i_max] * \
+                np.mean(self.channels[index_max].data_gained) / np.mean(self.channels[index].data_gained)
 
     def set_timedelta(self):
         """
@@ -291,16 +315,6 @@ class Session:
             t1, _ = self.channels[i].find_peak()
             self.channels[i].timedelta = t1 - t0
 
-    def get_boundaries(self):
-        """
-        Временной интервал измерений спектров
-        """
-        # self.set_timedelta()
-        bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
-                             for i in self.mask_indexes])
-        left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
-        return left, right
-
     def process(self, i):
         return i, self.sample.temperature(wavelengths=self.wavelengths, intensities=self.__data[i])
 
@@ -309,15 +323,17 @@ class Session:
                         parallel: bool = True):
         """
         Расчет температуры по Планку
-        :return:
         """
-        left, right = self.get_boundaries()
+        bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
+                             for i in self.mask_indexes])
+        left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
+
         if t_start is None:
             t_start = left
         if t_stop is None:
             t_stop = right
         if n_interp is None:
-            n_interp = self.n_interp_tp
+            n_interp = self.tp_n_interp_exp
 
         data = []
         lengths = []
