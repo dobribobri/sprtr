@@ -112,7 +112,7 @@ class Session:
         """
         return Body(eps=self.eps_sample)
 
-    def set_configuration(self, configuration: List[Tuple[int, float]]):
+    def update_configuration(self, configuration: List[Tuple[int, float]]):
         """
         Установить соответствия номер канала <--> длина волны
         """
