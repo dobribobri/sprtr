@@ -1,7 +1,7 @@
 from typing import Union, List
 from enum import Enum
 import numpy as np
-import dill
+import json
 import tqdm
 from multiprocessing import Pool
 import core.initials as initials
@@ -11,10 +11,9 @@ import xml.etree.ElementTree as et
 
 
 class Stages(Enum):
-    # Initialized = 0
-    TimeSynchro = 1  # синхронизация каналов по времени
-    Calibration = 2  # калибровка каналов
-    Measurement = 3  # проведение эксперимента
+    TimeSynchro = 0  # синхронизация каналов по времени
+    Calibration = 1  # калибровка каналов
+    Measurement = 2  # проведение эксперимента
 
 
 class Series:
@@ -45,23 +44,19 @@ class Channel:
         self.number = number  # номер канала
         self.wavelength = wavelength  # длина волны
 
-        self.TimeSynchroSeries = Series()  # данные сеанса для определения временных сдвигов
-        self.CalibrationSeries = Series()  # данные калибровочного сеанса
-        self.MeasurementSeries = Series()  # данные эксперимента
+        # 0 - TimeSynchro Series, 1 - Calibration Series, 2 - Measurement Series
+        self.Series = [Series(), Series(), Series()]
+        # 0 - данные сеанса для определения временных сдвигов
+        # 1 - данные калибровочного сеанса
+        # 2 - данные эксперимента
 
         self.gain = 1.  # коэффициент усиления
         self.alpha = 1.  # калибровочный коэффициент, переводящий уровни с АЦП в интенсивности АЧТ
-        self.timedelta = 0.  # смещение по
+        self.timedelta = 0.  # смещение по времени
 
     @property
     def series(self) -> Series:
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                return self.TimeSynchroSeries
-            case Stages.Calibration.value:
-                return self.CalibrationSeries
-            case _:
-                return self.MeasurementSeries
+        return self.Series[self.current_stage.value]
 
     @property
     def data(self) -> np.ndarray:
@@ -69,13 +64,7 @@ class Channel:
 
     @data.setter
     def data(self, _data: np.ndarray):
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                self.TimeSynchroSeries.data = _data
-            case Stages.Calibration.value:
-                self.CalibrationSeries.data = _data
-            case _:
-                self.MeasurementSeries.data = _data
+        self.Series[self.current_stage.value].data = _data
 
     @property
     def time(self) -> np.ndarray:
@@ -83,13 +72,7 @@ class Channel:
 
     @time.setter
     def time(self, _time: np.ndarray):
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                self.TimeSynchroSeries.time = _time
-            case Stages.Calibration.value:
-                self.CalibrationSeries.time = _time
-            case _:
-                self.MeasurementSeries.time = _time
+        self.Series[self.current_stage.value].time = _time
 
     @property
     def data_gained(self) -> np.ndarray:
@@ -113,13 +96,7 @@ class Channel:
 
     @mask.setter
     def mask(self, _mask: bool):
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                self.TimeSynchroSeries.mask = _mask
-            case Stages.Calibration.value:
-                self.CalibrationSeries.mask = _mask
-            case _:
-                self.MeasurementSeries.mask = _mask
+        self.Series[self.current_stage.value].mask = _mask
 
     @property
     def n_interp(self) -> Union[int, None]:
@@ -127,27 +104,13 @@ class Channel:
 
     @n_interp.setter
     def n_interp(self, _val: Union[int, None]):
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                self.TimeSynchroSeries.n_interp = _val
-            case Stages.Calibration.value:
-                self.CalibrationSeries.n_interp = _val
-            case _:
-                self.MeasurementSeries.n_interp = _val
+        self.Series[self.current_stage.value].n_interp = _val
 
     def erase_current(self) -> None:
-        match self.current_stage.value:
-            case Stages.TimeSynchro.value:
-                self.TimeSynchroSeries = Series()
-            case Stages.Calibration.value:
-                self.CalibrationSeries = Series()
-            case _:
-                self.MeasurementSeries = Series()
+        self.Series[self.current_stage.value] = Series()
 
     def clear_all(self) -> None:
-        self.TimeSynchroSeries = Series()
-        self.CalibrationSeries = Series()
-        self.MeasurementSeries = Series()
+        self.Series = [Series(), Series(), Series()]
 
     def read(self, filepath: str, format_='txt'):
         match format_:
@@ -239,9 +202,9 @@ class Session:
                 self.channels[i].used = True
             else:
                 self.channels[i].used = False
-                self.channels[i].TimeSynchroSeries.mask = False
-                self.channels[i].CalibrationSeries.mask = False
-                self.channels[i].MeasurementSeries.mask = False
+                self.channels[i].Series[Stages.TimeSynchro.value].mask = False
+                self.channels[i].Series[Stages.Calibration.value].mask = False
+                self.channels[i].Series[Stages.Measurement.value].mask = False
 
     @property
     def mask_indexes(self) -> list:
@@ -275,19 +238,15 @@ class Session:
         return Body(eps=self.eps_sample)
 
     def read_channels(self,
-                      # wavelengths: List[float],
                       filepaths: Union[list, str],
                       format_='txt',
-                      # current_stage: Stages = Stages.Measurement
                       ):
         """
         Прочитать данные из файлов filepaths и записать в каналы в соответствии с конфигурацией
         """
-        # self.channels = []
 
         if format_ in ['txt', 'wfm']:
-            # for i, (wavelength, filepath) in enumerate(zip(wavelengths, filepaths)):
-            #     self.read_channel(wavelength, filepath, format_, board=1, number=i + 1, current_stage=current_stage)
+
             for i, filepath in enumerate(filepaths):
                 self.read_channel(index=i, filepath=filepath, format_=format_)
 
@@ -303,9 +262,7 @@ class Session:
                 series = np.asarray(series)
                 n_channels = series.shape[1] - 1
                 for i in range(n_channels):
-                    # channel = Channel(wavelength=wavelengths[k + i], board=j + 1, number=i + 1, current_stage=current_stage)
-                    # channel.time, channel.data = Series.interpolate(series[:, 0], series[:, i + 1], channel.n_interp)
-                    # self.channels.append(channel)
+
                     self.channels[k + i].time, self.channels[k + i].data = \
                         Series.interpolate(series[:, 0], series[:, i + 1], self.channels[k + i].n_interp)
                     self.channels[k + i].mask = True
@@ -316,19 +273,13 @@ class Session:
 
     def read_channel(self,
                      index: int,
-                     # wavelength: float,
                      filepath: str,
                      format_: str = 'txt',
-                     # board: int = 1,
-                     # number: int = None,
-                     # current_stage: Stages = Stages.Measurement
                      ):
         """
         Прочитать данные из файла filepath и записать в новый канал
         """
-        # channel = Channel(wavelength=wavelength, board=board, number=number, current_stage=current_stage)
-        # channel.read(filepath, format_=format_)
-        # self.channels.append(channel)
+
         self.channels[index].read(filepath=filepath, format_=format_)
         self.channels[index].mask = True
 
@@ -430,20 +381,69 @@ class Session:
         results = np.asarray(sorted(results, key=lambda e: e[0]))
         return time, results[:, 1]  # T
 
-    def save(self, filepath='session'):
+    def save(self, filepath='session') -> None:
         """
         Сохранить сессию
         """
-        with open(filepath, 'wb') as dump:
-            dill.dump(self, dump, recurse=True)
+        info = {'channels': []}
+
+        for attr_name in ['T_gain_cal', 'T_abs_cal', 'eps_abs_cal', 'T_rel_cal', 'eps_rel_cal',
+                          'eps_sample', 'tp_n_interp_exp', 'n_workers']:
+            info[attr_name] = getattr(self, attr_name)
+
+        for channel in self.channels:
+            fields = {'series': [],
+                      'current_stage': channel.current_stage.value}
+
+            for attr_name in ['used', 'board', 'number', 'wavelength', 'gain', 'alpha', 'timedelta']:
+                fields[attr_name] = getattr(channel, attr_name)
+
+            for series in channel.Series:
+                fields_series = {}
+                for attr_name in ['time', 'data', 'mask', 'n_interp']:
+                    fields_series[attr_name] = getattr(series, attr_name)
+
+                fields['series'].append(fields_series)
+
+            info['channels'].append(fields)
+
+        with open(filepath, 'w') as dump:
+            json.dump(info, dump)
 
     @classmethod
-    def load(cls, filepath='session'):
+    def load(cls, filepath='session') -> 'Session':
         """
         Загрузить сессию
         """
-        with open(filepath, 'rb') as dump:
-            return dill.load(dump)
+        with open(filepath, 'r') as dump:
+            info = json.load(dump)
+
+        session = Session()
+
+        for attr_name in ['T_gain_cal', 'T_abs_cal', 'eps_abs_cal', 'T_rel_cal', 'eps_rel_cal',
+                          'eps_sample', 'tp_n_interp_exp', 'n_workers']:
+            setattr(session, attr_name, info[attr_name])
+
+        n_channels = len(info['channels'])
+        Channels = [Channel(wavelength=info['channels'][i]['wavelength']) for i in range(n_channels)]
+        for i in range(n_channels):
+            Channels[i].current_stage = Stages(info['channels'][i]['current_stage'])
+
+            for attr_name in ['used', 'board', 'number', 'wavelength', 'gain', 'alpha', 'timedelta']:
+                setattr(Channels[i], attr_name, info['channels'][i][attr_name])
+
+            n_series = len(info['channels'][i]['series'])
+            _Series = []
+            for j in range(n_series):
+                series = Series()
+                for attr_name in ['time', 'data', 'mask', 'n_interp']:
+                    setattr(series, attr_name, info['channels'][i]['series'][j][attr_name])
+                _Series.append(series)
+
+            Channels[i].Series = _Series
+
+        session.channels = Channels
+        return session
 
     def clear(self):
         """

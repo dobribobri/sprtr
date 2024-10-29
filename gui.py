@@ -1,6 +1,5 @@
-
 from formation import AppBuilder
-from tkinter import Toplevel, filedialog
+from tkinter import Toplevel, filedialog, TclError
 import core.initials as initials
 from core.session import Session, Channel
 import os
@@ -16,13 +15,14 @@ def new_session(event=None):
 
 def open_session(event=None):
     global session, session_filepath
-    session_filepath = filedialog.askopenfilename(filetypes=[('Сессия', '*.session')])
+    session_filepath = filedialog.askopenfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
     if session_filepath:
         session = Session.load(session_filepath)
     update_interface()
 
 
 def save_session(event=None):
+    update_session()
     if session_filepath:
         session.save(session_filepath)
     else:
@@ -31,12 +31,13 @@ def save_session(event=None):
 
 def save_as_session(event=None):
     global session_filepath
-    session_filepath = filedialog.asksaveasfilename(filetypes=[('Сессия', '*.session')])
+    update_session()
+    session_filepath = filedialog.asksaveasfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
     session.save(session_filepath)
 
 
 def on_close(event=None):
-    session.save('sprtr.session')
+    # session.save('session.json')
     print("До свидания!")
     exit(0)
 
@@ -288,23 +289,25 @@ def export_temperatures(event=None):
 def update_session(*args):
     session.used_indexes = np.argwhere(list(map(lambda var: var.get(), usage)))
     for j in session.used_indexes:
-        session.channels[j].wavelength = lambdas[j].get()
-        session.channels[j].gain = gains[j].get()
-        session.channels[j].timedelta = deltas[j].get()
-        session.channels[j].alpha = alphas[j].get()
+        try:
+            session.channels[j].wavelength = lambdas[j].get()
+            session.channels[j].gain = gains[j].get()
+            session.channels[j].timedelta = deltas[j].get()
+            session.channels[j].alpha = alphas[j].get()
+        except TclError:
+            pass
 
 
 def update_interface(*args):
+    global usage, lambdas, deltas, alphas, gains
+
     for j in range(10):
         if j in session.used_indexes:
             exec("root.use_ch{}.set(True)".format(str(j+1).zfill(2)))
         else:
             exec("root.use_ch{}.set(False)".format(str(j+1).zfill(2)))
 
-        print(lambdas[j].get())
-        print(session.channels[j].wavelength)
         lambdas[j].set(session.channels[j].wavelength)
-        print(lambdas[j].get())
         gains[j].set(session.channels[j].gain)
         deltas[j].set(session.channels[j].timedelta)
         alphas[j].set(session.channels[j].alpha)
@@ -319,40 +322,37 @@ if __name__ == "__main__":
              root.use_ch06, root.use_ch07, root.use_ch08, root.use_ch09, root.use_ch10]
 
     for i in range(10):
-        # usage[i].set(True)
-        usage[i].trace('w', update_session)
+        usage[i].set(True)
 
     lambdas = [root.lambda01, root.lambda02, root.lambda03, root.lambda04, root.lambda05,
                root.lambda06, root.lambda07, root.lambda08, root.lambda09, root.lambda10]
 
     for i in range(10):
-        # lambdas[i].set(initials.configuration[i][1])
-        lambdas[i].trace('w', update_session)
+        lambdas[i].set(initials.configuration[i][1])
 
     deltas = [root.deltat01, root.deltat02, root.deltat03, root.deltat04, root.deltat05,
               root.deltat06, root.deltat07, root.deltat08, root.deltat09, root.deltat10]
 
     for i in range(10):
-        # deltas[i].set(0.0)
-        deltas[i].trace('w', update_session)
+        deltas[i].set(0.0)
 
     alphas = [root.alpha01, root.alpha02, root.alpha03, root.alpha04, root.alpha05,
               root.alpha06, root.alpha07, root.alpha08, root.alpha09, root.alpha10]
 
     for i in range(10):
-        # alphas[i].set(1.0)
-        alphas[i].trace('w', update_session)
+        alphas[i].set(1.0)
 
     gains = [root.gain01, root.gain02, root.gain03, root.gain04, root.gain05,
              root.gain06, root.gain07, root.gain08, root.gain09, root.gain10]
 
     for i in range(10):
-        # gains[i].set(1.0)
-        gains[i].trace('w', update_session)
+        gains[i].set(1.0)
 
     channels_initial = [Channel(wavelength=wavelength) for wavelength in map(lambda var: var.get(), lambdas)]
     session: Session = Session(channels=channels_initial)
     session_filepath = None
+
+    update_session()
 
     root.connect_callbacks(globals())
 

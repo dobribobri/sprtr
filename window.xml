@@ -108,7 +108,7 @@
   <tkinter.IntVar attr:name="fr_n_interp_sync" attr:value="1024"/>
   <tkinter.IntVar attr:name="fr_n_interp_cal" attr:value="1024"/>
   <tkinter.IntVar attr:name="fr_n_interp_exp" attr:value="1024"/>
-  <tkinter.BooleanVar attr:name="sync_ch01" attr:value="False"/>
+  <tkinter.BooleanVar attr:name="sync_ch01" attr:value="True"/>
   <tkinter.BooleanVar attr:name="sync_ch02" attr:value="True"/>
   <tkinter.BooleanVar attr:name="sync_ch03" attr:value="True"/>
   <tkinter.BooleanVar attr:name="sync_ch04" attr:value="True"/>
