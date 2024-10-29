@@ -6,6 +6,8 @@ import tqdm
 from multiprocessing import Pool
 import core.initials as initials
 from core.planck import Body
+import core.tekwfm as tekwfm
+import xml.etree.ElementTree as et
 
 
 class Stages(Enum):
@@ -22,6 +24,14 @@ class Series:
 
         self.mask: bool = True         # применять обработку
         self.n_interp: Union[int, None] = 1024      # число точек интерполяции при загрузке из файла
+
+    @staticmethod
+    def interpolate(time: np.asarray, data: np.asarray, n_interp: int = None):
+        if n_interp is None:
+            return time, data
+        new_time = np.linspace(time[0], time[-1], n_interp)
+        data = np.interp(new_time, time, data)
+        return new_time, data
 
 
 class Channel:
@@ -140,30 +150,53 @@ class Channel:
         self.MeasurementSeries = Series()
 
     def read(self, filepath: str, format_='txt'):
-        if format_ == 'txt':
-            self.read_txt(filepath)
+        match format_:
+            case 'txt':
+                self.read_txt(filepath)
+            case 'wfm':
+                self.read_wfm(filepath)
+            case _:
+                self.read_txt(filepath)
 
     def read_txt(self, filepath: str):
-        data = np.asarray(np.loadtxt(filepath))
-        if data.shape != (len(data), 2):
+        series = np.asarray(np.loadtxt(filepath))
+        if series.shape != (len(series), 2):
             raise "Неверный формат данных"
 
-        if self.n_interp is None:
-            self.time, self.data = data[:, 0], data[:, 1]
-            return
+        self.time, self.data = \
+            Series.interpolate(time=series[:, 0], data=series[:, 1], n_interp=self.n_interp)
 
-        t_start = data[0, 0]
-        t_stop = data[-1, 0]
-        self.time = np.linspace(t_start, t_stop, self.n_interp)
-        self.data = np.interp(self.time, data[:, 0], data[:, 1])
+    def read_wfm(self, filepath: str, frameNo=0):
+        try:
+            volts, tstart, tscale, tfrac, tdatefrac, tdate = tekwfm.read_wfm(filepath)
+        except tekwfm.WfmReadError:
+            raise "Ошибка чтения .wfm"
+
+        # create time vector
+        samples, frames = volts.shape
+        tstop = samples * tscale + tstart
+        t = np.linspace(tstart, tstop, num=samples, endpoint=False)
+
+        # fractional trigger
+        times = np.zeros(volts.shape)
+        for frame, subsample in enumerate(tfrac):
+            toff = subsample * tscale
+            times[:, frame] = t + toff
+        if frameNo >= frames:
+            frameNo = 0
+        gt = times[:, frameNo]
+        if frameNo != -1:
+            gw = volts[:, frameNo]
+        else:
+            gw = np.average(volts, axis=1)
+
+        self.time, self.data = \
+            Series.interpolate(time=gt, data=gw, n_interp=self.n_interp)
 
 
 class Session:
     def __init__(self, channels: List[Channel] = None):
         self.channels: List[Channel] = channels  # Каналы
-
-        # Соответствие номера канала и его длины волны
-        self.configuration = initials.configuration
 
         # Настройка коэффициента усиления
         self.T_gain_cal = 2500                        # температура эталона
@@ -241,24 +274,44 @@ class Session:
         return Body(eps=self.eps_sample)
 
     def read_channels(self,
-                      filepaths: list,
+                      wavelengths: List[float],
+                      filepaths: Union[list, str],
                       format_='txt',
-                      board: int = None,
                       current_stage: Stages = Stages.Measurement):
         """
         Прочитать данные из файлов filepaths и записать в каналы в соответствии с конфигурацией
         """
         self.channels = []
-        for i, filepath in enumerate(filepaths):
-            number, wavelength = self.configuration[i]
-            self.read_channel(wavelength, filepath=filepath, format_=format_,
-                              board=board, number=number, current_stage=current_stage)
+
+        if format_ in ['txt', 'wfm']:
+            for i, (wavelength, filepath) in enumerate(zip(wavelengths, filepaths)):
+                self.read_channel(wavelength, filepath, format_, board=1, number=i + 1, current_stage=current_stage)
+
+        elif format_ in ['dat', 'csv']:
+            k = 0
+            for j, filepath in enumerate(filepaths):
+                series = []
+                match format_:
+                    case 'dat':
+                        series = np.loadtxt(filepath)
+                    case 'csv':
+                        series = np.loadtxt(filepath, delimiter=',', skiprows=1)
+                series = np.asarray(series)
+                n_channels = series.shape[1] - 1
+                for i in range(n_channels):
+                    channel = Channel(wavelength=wavelengths[k + i], board=j + 1, number=i + 1, current_stage=current_stage)
+                    channel.time, channel.data = Series.interpolate(series[:, 0], series[:, i + 1], channel.n_interp)
+                    self.channels.append(channel)
+                k = n_channels
+
+        else:
+            pass
 
     def read_channel(self,
                      wavelength: float,
                      filepath: str,
-                     format_='txt',
-                     board: int = None,
+                     format_: str = 'txt',
+                     board: int = 1,
                      number: int = None,
                      current_stage: Stages = Stages.Measurement):
         """

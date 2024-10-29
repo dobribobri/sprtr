@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 from core.planck import planck, BlackBody, Body
-from core.session import Session
+from core.session import Session, Stages
 
 
 def planck_001(eps: Union[float, np.ndarray, dict] = 1):
