@@ -430,19 +430,19 @@ class Session:
         results = np.asarray(sorted(results, key=lambda e: e[0]))
         return time, results[:, 1]  # T
 
-    def save(self, filename='session'):
+    def save(self, filepath='session'):
         """
         Сохранить сессию
         """
-        with open(filename, 'wb') as dump:
-            dill.dump(self, dump)
+        with open(filepath, 'wb') as dump:
+            dill.dump(self, dump, recurse=True)
 
     @classmethod
-    def load(cls, filename='session'):
+    def load(cls, filepath='session'):
         """
         Загрузить сессию
         """
-        with open(filename, 'rb') as dump:
+        with open(filepath, 'rb') as dump:
             return dill.load(dump)
 
     def clear(self):

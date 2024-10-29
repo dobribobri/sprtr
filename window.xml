@@ -108,7 +108,7 @@
   <tkinter.IntVar attr:name="fr_n_interp_sync" attr:value="1024"/>
   <tkinter.IntVar attr:name="fr_n_interp_cal" attr:value="1024"/>
   <tkinter.IntVar attr:name="fr_n_interp_exp" attr:value="1024"/>
-  <tkinter.BooleanVar attr:name="sync_ch01" attr:value="True"/>
+  <tkinter.BooleanVar attr:name="sync_ch01" attr:value="False"/>
   <tkinter.BooleanVar attr:name="sync_ch02" attr:value="True"/>
   <tkinter.BooleanVar attr:name="sync_ch03" attr:value="True"/>
   <tkinter.BooleanVar attr:name="sync_ch04" attr:value="True"/>
@@ -148,24 +148,24 @@
   <tkinter.ttk.Notebook name="notebook_main" layout:width="704" layout:height="591" layout:x="0" layout:y="0" layout:bordermode="outside">
     <tkinter.Frame name="frame_initial" attr:layout="place" layout:text="Основное">
       <tkinter.ttk.Labelframe name="labelframe_lambda" attr:text="Длина волны &#10;в мкм" attr:layout="place" layout:width="140" layout:height="549" layout:x="111" layout:y="1" layout:bordermode="outside">
-        <tkinter.ttk.Spinbox name="spinbox_lambda_01" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_lambda_01" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda01" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_02" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda02" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_03" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_04" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_05" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_lambda_06" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_lambda_06" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda06" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_07" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_08" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_09" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_lambda_10" attr:to="10000" attr:increment="0.01" attr:textvariable="lambda10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
       </tkinter.ttk.Labelframe>
       <tkinter.ttk.Labelframe name="labelframe_sync" attr:text="Смещение &#10;по времени, пс" attr:layout="place" layout:width="140" layout:height="549" layout:x="258" layout:y="1" layout:bordermode="outside">
-        <tkinter.ttk.Spinbox name="spinbox_sync_01" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_01" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat01" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_sync_02" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat02" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_03" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_03" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat03" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_sync_04" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_sync_05" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_sync_06" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_sync_06" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat06" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_sync_07" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_sync_08" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_sync_09" attr:from="-10000" attr:to="10000" attr:increment="0.01" attr:textvariable="deltat09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
@@ -175,10 +175,10 @@
         <tkinter.ttk.Spinbox name="spinbox_alpha_01" attr:to="100" attr:increment="0.01" attr:textvariable="alpha01" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_02" attr:to="100" attr:increment="0.01" attr:textvariable="alpha02" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_03" attr:to="100" attr:increment="0.01" attr:textvariable="alpha03" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_04" attr:to="100" attr:increment="0.01" attr:textvariable="alpha04" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_04" attr:to="100" attr:increment="0.01" attr:textvariable="alpha04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_05" attr:to="100" attr:increment="0.01" attr:textvariable="alpha05" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_06" attr:to="100" attr:increment="0.01" attr:textvariable="alpha06" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_alpha_07" attr:to="100" attr:increment="0.01" attr:textvariable="alpha07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_alpha_07" attr:to="100" attr:increment="0.01" attr:textvariable="alpha07" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_08" attr:to="100" attr:increment="0.01" attr:textvariable="alpha08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_09" attr:to="100" attr:increment="0.01" attr:textvariable="alpha09" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_alpha_10" attr:to="100" attr:increment="0.01" attr:textvariable="alpha10" layout:width="109" layout:height="25" layout:x="15" layout:y="500" layout:bordermode="outside"/>
@@ -186,10 +186,10 @@
       <tkinter.ttk.Labelframe name="labelframe_gain" attr:text="Коэффициент&#10;усиления" attr:layout="place" layout:width="140" layout:height="549" layout:x="552" layout:y="1" layout:bordermode="outside">
         <tkinter.ttk.Spinbox name="spinbox_gain_01" attr:to="100" attr:increment="0.01" attr:textvariable="gain01" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="50" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_02" attr:to="100" attr:increment="0.01" attr:textvariable="gain02" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="100" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_gain_03" attr:to="100" attr:increment="0.01" attr:textvariable="gain03" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_03" attr:to="100" attr:increment="0.01" attr:textvariable="gain03" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="150" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_04" attr:to="100" attr:increment="0.01" attr:textvariable="gain04" layout:width="109" layout:height="25" layout:x="15" layout:y="200" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_05" attr:to="100" attr:increment="0.01" attr:textvariable="gain05" layout:width="109" layout:height="25" layout:x="15" layout:y="250" layout:bordermode="outside"/>
-        <tkinter.ttk.Spinbox name="spinbox_gain_06" attr:to="100" attr:increment="0.01" attr:textvariable="gain06" attr:cursor="xterm" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
+        <tkinter.ttk.Spinbox name="spinbox_gain_06" attr:to="100" attr:increment="0.01" attr:textvariable="gain06" layout:width="109" layout:height="25" layout:x="15" layout:y="300" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_07" attr:to="100" attr:increment="0.01" attr:textvariable="gain07" layout:width="109" layout:height="25" layout:x="15" layout:y="350" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_08" attr:to="100" attr:increment="0.01" attr:textvariable="gain08" layout:width="109" layout:height="25" layout:x="15" layout:y="400" layout:bordermode="outside"/>
         <tkinter.ttk.Spinbox name="spinbox_gain_09" attr:to="100" attr:increment="0.01" attr:textvariable="gain09" layout:width="109" layout:height="25" layout:x="15" layout:y="450" layout:bordermode="outside"/>

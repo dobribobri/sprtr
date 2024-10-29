@@ -107,7 +107,7 @@ def planck_008():
 
 def session_001():
     wavelengths = np.asarray(initials.configuration)[:, 1]
-    session = Session(channels=list([Channel(wavelength=wavelength) for wavelength in wavelengths]))
+    session = Session(channels=[Channel(wavelength=wavelength) for wavelength in wavelengths])
 
     directory = './2023_11_28/iskra'
     filenames = ['C{}--opyt.txt'.format(i) for i in range(1, 5)]
