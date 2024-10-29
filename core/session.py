@@ -22,7 +22,7 @@ class Series:
         self.time: np.ndarray = None   # отсчеты времени
         self.data: np.ndarray = None   # значения
 
-        self.mask: bool = True         # применять обработку
+        self.mask: bool = False         # применять обработку
         self.n_interp: Union[int, None] = 1024      # число точек интерполяции при загрузке из файла
 
     @staticmethod
@@ -260,11 +260,12 @@ class Session:
                 self.channels[i].mask = False
 
     @property
-    def wavelengths(self) -> np.ndarray:
-        """
-        Используемые длины волн
-        """
+    def wavelengths_masked(self) -> np.ndarray:
         return np.asarray([self.channels[i].wavelength for i in self.mask_indexes])
+
+    @property
+    def channels_masked(self) -> list:
+        return [self.channels[i] for i in self.mask_indexes]
 
     @property
     def sample(self) -> Body:
@@ -274,18 +275,21 @@ class Session:
         return Body(eps=self.eps_sample)
 
     def read_channels(self,
-                      wavelengths: List[float],
+                      # wavelengths: List[float],
                       filepaths: Union[list, str],
                       format_='txt',
-                      current_stage: Stages = Stages.Measurement):
+                      # current_stage: Stages = Stages.Measurement
+                      ):
         """
         Прочитать данные из файлов filepaths и записать в каналы в соответствии с конфигурацией
         """
-        self.channels = []
+        # self.channels = []
 
         if format_ in ['txt', 'wfm']:
-            for i, (wavelength, filepath) in enumerate(zip(wavelengths, filepaths)):
-                self.read_channel(wavelength, filepath, format_, board=1, number=i + 1, current_stage=current_stage)
+            # for i, (wavelength, filepath) in enumerate(zip(wavelengths, filepaths)):
+            #     self.read_channel(wavelength, filepath, format_, board=1, number=i + 1, current_stage=current_stage)
+            for i, filepath in enumerate(filepaths):
+                self.read_channel(index=i, filepath=filepath, format_=format_)
 
         elif format_ in ['dat', 'csv']:
             k = 0
@@ -299,27 +303,34 @@ class Session:
                 series = np.asarray(series)
                 n_channels = series.shape[1] - 1
                 for i in range(n_channels):
-                    channel = Channel(wavelength=wavelengths[k + i], board=j + 1, number=i + 1, current_stage=current_stage)
-                    channel.time, channel.data = Series.interpolate(series[:, 0], series[:, i + 1], channel.n_interp)
-                    self.channels.append(channel)
-                k = n_channels
+                    # channel = Channel(wavelength=wavelengths[k + i], board=j + 1, number=i + 1, current_stage=current_stage)
+                    # channel.time, channel.data = Series.interpolate(series[:, 0], series[:, i + 1], channel.n_interp)
+                    # self.channels.append(channel)
+                    self.channels[k + i].time, self.channels[k + i].data = \
+                        Series.interpolate(series[:, 0], series[:, i + 1], self.channels[k + i].n_interp)
+                    self.channels[k + i].mask = True
+                k += n_channels
 
         else:
             pass
 
     def read_channel(self,
-                     wavelength: float,
+                     index: int,
+                     # wavelength: float,
                      filepath: str,
                      format_: str = 'txt',
-                     board: int = 1,
-                     number: int = None,
-                     current_stage: Stages = Stages.Measurement):
+                     # board: int = 1,
+                     # number: int = None,
+                     # current_stage: Stages = Stages.Measurement
+                     ):
         """
         Прочитать данные из файла filepath и записать в новый канал
         """
-        channel = Channel(wavelength=wavelength, board=board, number=number, current_stage=current_stage)
-        channel.read(filepath, format_=format_)
-        self.channels.append(channel)
+        # channel = Channel(wavelength=wavelength, board=board, number=number, current_stage=current_stage)
+        # channel.read(filepath, format_=format_)
+        # self.channels.append(channel)
+        self.channels[index].read(filepath=filepath, format_=format_)
+        self.channels[index].mask = True
 
     @staticmethod
     def __goal_level(wavelength: float, T: float):
@@ -354,7 +365,7 @@ class Session:
         Относительная калибровка
         """
         body = Body(eps=self.eps_rel_cal)
-        I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths]
+        I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths_masked]
         i_max = np.argmax(I_spectrum)
         index_max = self.mask_indexes[i_max]
         for i, index in enumerate(self.mask_indexes):
@@ -373,7 +384,7 @@ class Session:
             self.channels[i].timedelta = t1 - t0
 
     def process(self, i):
-        return i, self.sample.temperature(wavelengths=self.wavelengths, intensities=self.__data[i])
+        return i, self.sample.temperature(wavelengths=self.wavelengths_masked, intensities=self.__data[i])
 
     def get_temperature(self, t_start: float = None, t_stop: float = None, parallel: bool = True):
         """
@@ -407,7 +418,7 @@ class Session:
         if not parallel:
             T = []
             for spectrum in self.__data:
-                T.append(self.sample.temperature(wavelengths=self.wavelengths, intensities=spectrum))
+                T.append(self.sample.temperature(wavelengths=self.wavelengths_masked, intensities=spectrum))
             return time, np.asarray(T)
 
         results = []

@@ -4,7 +4,8 @@ import os
 import numpy as np
 import pandas as pd
 from core.planck import planck, BlackBody, Body
-from core.session import Session, Stages
+from core.session import Session, Stages, Channel
+import core.initials as initials
 
 
 def planck_001(eps: Union[float, np.ndarray, dict] = 1):
@@ -105,7 +106,8 @@ def planck_008():
 
 
 def session_001():
-    session = Session()
+    wavelengths = np.asarray(initials.configuration)[:, 1]
+    session = Session(channels=list([Channel(wavelength=wavelength) for wavelength in wavelengths]))
 
     directory = './2023_11_28/iskra'
     filenames = ['C{}--opyt.txt'.format(i) for i in range(1, 5)]
@@ -113,18 +115,12 @@ def session_001():
 
     session.read_channels(filepaths=paths, format_='txt')
 
-    # plt.figure()
-    # for channel in session.channels:
-    #     plt.plot(channel.time, channel.data,
-    #              label='Устройство #{}, канал #{}'.format(channel.board, channel.number))
-    # plt.xlabel('Время')
-    # plt.ylabel('АЦП')
-    # plt.legend(loc='best', frameon=False)
-    # plt.show()
-
+    session.mask_indexes = [1, 2]
     session.set_timedelta()
     plt.figure()
-    for channel in session.channels:
+    for i, channel in enumerate(session.channels_masked):
+        channel.board = 1
+        channel.number = i + 1
         plt.plot(channel.time_synced, channel.data,
                  label='Устройство #{}, канал #{}'.format(channel.board, channel.number))
     plt.xlabel('Время')
@@ -132,43 +128,21 @@ def session_001():
     plt.legend(loc='best', frameon=True)
     plt.show()
 
-    # session.set_gain()
-    # plt.figure()
-    # for channel in session.channels:
-    #     print('mean: ', np.mean(channel.data))
-    #     print('goal: ', session.bb_adc_levels[channel.wavelength][2500])
-    #     print('coef: ', channel.gain)
-    #     if channel.number not in [1, 2]:
-    #         plt.plot(channel.time_synced, channel.data_calibrated,
-    #                  label='Устройство #{}, канал #{}'.format(channel.board, channel.number))
-    # plt.xlabel('Время')
-    # plt.ylabel('АЦП * коэфф. усиления')
-    # plt.legend(loc='best', frameon=False)
-    # plt.show()
-
-    # session.set_alpha()
-    # plt.figure()
-    # for channel in session.channels:
-    #     if channel.number not in [1, 2]:
-    #         plt.plot(channel.time_synced, channel.data_calibrated,
-    #                  label='Устройство #{}, канал #{}'.format(channel.board, channel.number))
-    # plt.xlabel('Время')
-    # plt.ylabel(r'АЦП * коэфф. усиления * $\alpha$')
-    # plt.legend(loc='best', frameon=False)
-    # plt.show()
-
     time, T = session.get_temperature(t_start=1e-5, t_stop=2e-5, parallel=True)
 
     plt.figure()
-    for channel in session.channels:
+    for i, channel in enumerate(session.channels_masked):
+        channel.board = 1
+        channel.number = i + 1
         plt.plot(channel.time_synced, channel.data,
                  label='Устройство #{}, канал #{}'.format(channel.board, channel.number))
     plt.xlabel('Время')
     plt.ylabel(r'АЦП * коэфф. усиления * $\alpha$ (?)')
+    plt.legend(loc="upper right", frameon=False)
 
     ax = plt.gca()
     ax = plt.twinx(ax)
     ax.plot(time, T, color='blue', lw=2, label='Температура')
 
-    plt.legend(loc='best', frameon=False)
+    plt.legend(loc="center right", frameon=False)
     plt.show()
