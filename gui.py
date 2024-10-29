@@ -1,7 +1,7 @@
 from formation import AppBuilder
-from tkinter import Toplevel, filedialog, TclError
+from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED
 import core.initials as initials
-from core.session import Session, Channel
+from core.session import Session, Channel, Stages
 import os
 import numpy as np
 
@@ -287,13 +287,50 @@ def export_temperatures(event=None):
 
 # Вкладка "Основное"
 def update_session(*args):
-    session.used_indexes = np.argwhere(list(map(lambda var: var.get(), usage)))
-    for j in session.used_indexes:
+
+    session.used = list(map(lambda var: var.get(), usage))
+
+    tab_index = root.notebook_main.index(root.notebook_main.select())
+    stage_val = tab_index - 1
+    if 0 <= stage_val < 3:
+        session.stage = Stages(stage_val)
+
+    if root.calibration_type.get():  # Относительная калибровка
+        session.T_rel_cal = root.T_cal.get()
+    else:  # Абсолютная калибровка
+        session.T_abs_cal = root.T_cal.get()
+
+    session.tp_n_interp_exp = None
+    if root.tp_interp_exp.get():
+        session.tp_n_interp_exp = root.tp_n_interp_exp.get()
+
+    for j in range(10):
         try:
             session.channels[j].wavelength = lambdas[j].get()
             session.channels[j].gain = gains[j].get()
             session.channels[j].timedelta = deltas[j].get()
             session.channels[j].alpha = alphas[j].get()
+
+            for stage in Stages:
+                n_interp = None
+                mask = True
+                match stage.value:
+                    case Stages.TimeSynchro.value:
+                        mask = sync_mask[j].get()
+                        if root.fr_interp_sync.get():
+                            n_interp = root.fr_n_interp_sync.get()
+                    case Stages.Calibration.value:
+                        mask = cal_mask[j].get()
+                        if root.fr_interp_cal.get():
+                            n_interp = root.fr_n_interp_cal.get()
+                    case Stages.Measurement.value:
+                        mask = exp_mask[j].get()
+                        if root.fr_interp_exp.get():
+                            n_interp = root.fr_n_interp_exp.get()
+
+                session.channels[j].Series[stage.value].n_interp = n_interp
+                session.channels[j].Series[stage.value].mask = mask
+
         except TclError:
             pass
 
@@ -301,16 +338,77 @@ def update_session(*args):
 def update_interface(*args):
     global usage, lambdas, deltas, alphas, gains
 
+    current_stage = session.stage
+    root.notebook_main.select(current_stage.value + 1)
+
+    for stage in Stages:
+        n_interp = session.first_channel.Series[stage.value].n_interp
+        match stage.value:
+            case Stages.TimeSynchro.value:
+                root.fr_interp_sync.set(bool(n_interp))
+                root.fr_n_interp_sync.set(n_interp)
+            case Stages.Calibration.value:
+                root.fr_interp_cal.set(bool(n_interp))
+                root.fr_n_interp_cal.set(n_interp)
+            case Stages.Measurement.value:
+                root.fr_interp_exp.set(bool(n_interp))
+                root.fr_n_interp_exp.set(n_interp)
+
     for j in range(10):
+        nch = str(j+1).zfill(2)
         if j in session.used_indexes:
-            exec("root.use_ch{}.set(True)".format(str(j+1).zfill(2)))
+            exec("root.use_ch{}.set(True)".format(nch))
         else:
-            exec("root.use_ch{}.set(False)".format(str(j+1).zfill(2)))
+            exec("root.use_ch{}.set(False)".format(nch))
 
         lambdas[j].set(session.channels[j].wavelength)
         gains[j].set(session.channels[j].gain)
         deltas[j].set(session.channels[j].timedelta)
         alphas[j].set(session.channels[j].alpha)
+
+        for stage in Stages:
+            mask = session.channels[j].Series[stage.value].mask
+            match stage.value:
+                case Stages.TimeSynchro.value:
+                    exec("root.sync_ch{}.set({})".format(nch, mask))
+                case Stages.Calibration.value:
+                    exec("root.cal_ch{}.set({})".format(nch, mask))
+                case Stages.Measurement.value:
+                    exec("root.temp_ch{}.set({})".format(nch, mask))
+
+    root.tp_interp_exp.set(bool(session.tp_n_interp_exp))
+    root.tp_n_interp_exp.set(session.tp_n_interp_exp)
+
+
+def update_usage(*args):
+    for j in range(10):
+        if usage[j].get():
+            lambdas_spinboxes[j].configure(state=NORMAL)
+            deltas_spinboxes[j].configure(state=NORMAL)
+            alphas_spinboxes[j].configure(state=NORMAL)
+            gains_spinboxes[j].configure(state=NORMAL)
+
+            sync_checkbuttons[j].configure(state=NORMAL)
+            cal_checkbuttons[j].configure(state=NORMAL)
+            temp_checkbuttons[j].configure(state=NORMAL)
+
+            sync_load_buttons[j].configure(state=NORMAL)
+            cal_load_buttons[j].configure(state=NORMAL)
+            exp_load_buttons[j].configure(state=NORMAL)
+
+        else:
+            lambdas_spinboxes[j].configure(state=DISABLED)
+            deltas_spinboxes[j].configure(state=DISABLED)
+            alphas_spinboxes[j].configure(state=DISABLED)
+            gains_spinboxes[j].configure(state=DISABLED)
+
+            sync_checkbuttons[j].configure(state=DISABLED)
+            cal_checkbuttons[j].configure(state=DISABLED)
+            temp_checkbuttons[j].configure(state=DISABLED)
+
+            sync_load_buttons[j].configure(state=DISABLED)
+            cal_load_buttons[j].configure(state=DISABLED)
+            exp_load_buttons[j].configure(state=DISABLED)
 
 
 if __name__ == "__main__":
@@ -318,41 +416,70 @@ if __name__ == "__main__":
 
     root.notebook_main.select(0)
 
-    usage = [root.use_ch01, root.use_ch02, root.use_ch03, root.use_ch04, root.use_ch05,
-             root.use_ch06, root.use_ch07, root.use_ch08, root.use_ch09, root.use_ch10]
+    # Основное
+    usage, lambdas, deltas, alphas, gains = [], [], [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("usage.append(root.use_ch{})".format(chn))
+        exec("lambdas.append(root.lambda{})".format(chn))
+        exec("deltas.append(root.deltat{})".format(chn))
+        exec("alphas.append(root.alpha{})".format(chn))
+        exec("gains.append(root.gain{})".format(chn))
 
     for i in range(10):
         usage[i].set(True)
+        usage[i].trace('w', update_usage)
 
-    lambdas = [root.lambda01, root.lambda02, root.lambda03, root.lambda04, root.lambda05,
-               root.lambda06, root.lambda07, root.lambda08, root.lambda09, root.lambda10]
-
-    for i in range(10):
         lambdas[i].set(initials.configuration[i][1])
 
-    deltas = [root.deltat01, root.deltat02, root.deltat03, root.deltat04, root.deltat05,
-              root.deltat06, root.deltat07, root.deltat08, root.deltat09, root.deltat10]
-
-    for i in range(10):
         deltas[i].set(0.0)
 
-    alphas = [root.alpha01, root.alpha02, root.alpha03, root.alpha04, root.alpha05,
-              root.alpha06, root.alpha07, root.alpha08, root.alpha09, root.alpha10]
-
-    for i in range(10):
         alphas[i].set(1.0)
 
-    gains = [root.gain01, root.gain02, root.gain03, root.gain04, root.gain05,
-             root.gain06, root.gain07, root.gain08, root.gain09, root.gain10]
-
-    for i in range(10):
         gains[i].set(1.0)
 
-    channels_initial = [Channel(wavelength=wavelength) for wavelength in map(lambda var: var.get(), lambdas)]
+    # Другие вкладки
+    sync_mask, cal_mask, exp_mask = [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("sync_mask.append(root.sync_ch{})".format(chn))  # Синхронизация
+        exec("cal_mask.append(root.cal_ch{})".format(chn))    # Калибровка
+        exec("exp_mask.append(root.temp_ch{})".format(chn))   # Эксперимент
+
+    # Сессия
+    channels_initial = [Channel(wavelength=wavelength, current_stage=Stages.Measurement)
+                        for wavelength in map(lambda var: var.get(), lambdas)]
     session: Session = Session(channels=channels_initial)
     session_filepath = None
 
     update_session()
+
+    # Checkbuttons
+    usage_checkbuttons, sync_checkbuttons, cal_checkbuttons, temp_checkbuttons = [], [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("usage_checkbuttons.append(root.checkbutton_channel_{})".format(chn))
+        exec("sync_checkbuttons.append(root.checkbutton_ch{}_sync)".format(chn))
+        exec("cal_checkbuttons.append(root.checkbutton_ch{}_cal)".format(chn))
+        exec("temp_checkbuttons.append(root.checkbutton_ch{}_calc_exp)".format(chn))
+
+    # Spinboxes
+    lambdas_spinboxes, deltas_spinboxes, alphas_spinboxes, gains_spinboxes = \
+        [], [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("lambdas_spinboxes.append(root.spinbox_lambda_{})".format(chn))
+        exec("deltas_spinboxes.append(root.spinbox_sync_{})".format(chn))
+        exec("alphas_spinboxes.append(root.spinbox_alpha_{})".format(chn))
+        exec("gains_spinboxes.append(root.spinbox_gain_{})".format(chn))
+
+    # Load buttons
+    sync_load_buttons, cal_load_buttons, exp_load_buttons = [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("sync_load_buttons.append(root.button_load_ch{}_sync)".format(chn))
+        exec("cal_load_buttons.append(root.button_load_ch{}_cal)".format(chn))
+        exec("exp_load_buttons.append(root.button_load_ch{}_exp)".format(chn))
 
     root.connect_callbacks(globals())
 

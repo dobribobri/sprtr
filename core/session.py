@@ -7,7 +7,7 @@ from multiprocessing import Pool
 import core.initials as initials
 from core.planck import Body
 import core.tekwfm as tekwfm
-import xml.etree.ElementTree as et
+# import xml.etree.ElementTree as et
 
 
 class Stages(Enum):
@@ -33,6 +33,7 @@ class Series:
         return new_time, data
 
 
+# noinspection PyTypeChecker
 class Channel:
     def __init__(self, wavelength: float,
                  board: int = None, number: int = None,
@@ -45,7 +46,7 @@ class Channel:
         self.wavelength = wavelength  # длина волны
 
         # 0 - TimeSynchro Series, 1 - Calibration Series, 2 - Measurement Series
-        self.Series = [Series(), Series(), Series()]
+        self.Series = [Series()] * 3
         # 0 - данные сеанса для определения временных сдвигов
         # 1 - данные калибровочного сеанса
         # 2 - данные эксперимента
@@ -110,7 +111,7 @@ class Channel:
         self.Series[self.current_stage.value] = Series()
 
     def clear_all(self) -> None:
-        self.Series = [Series(), Series(), Series()]
+        self.Series = [Series()] * 3
 
     def read(self, filepath: str, format_='txt'):
         match format_:
@@ -182,9 +183,26 @@ class Session:
         # Данные, направленные на обработку
         self.__data = None
 
-    def set_stage(self, stage: Stages = Stages.Measurement):
+    @property
+    def first_channel(self):
+        return self.channels[0]
+
+    @property
+    def last_channel(self):
+        return self.channels[-1]
+
+    @property
+    def stage(self):
+        s = self.channels[0].current_stage
+        for channel in self.channels:
+            if s.value != channel.current_stage.value:
+                return None
+        return s
+
+    @stage.setter
+    def stage(self, _stage: Stages = Stages.Measurement):
         for i in range(len(self.channels)):
-            self.channels[i].current_stage = stage
+            self.channels[i].current_stage = _stage
 
     @property
     def used_indexes(self) -> list:
@@ -207,20 +225,41 @@ class Session:
                 self.channels[i].Series[Stages.Measurement.value].mask = False
 
     @property
+    def used(self) -> np.ndarray:
+        arr = []
+        for i in range(len(self.channels)):
+            arr.append(i in self.used_indexes)
+        return np.asarray(arr)
+
+    @used.setter
+    def used(self, _mask):
+        for i in range(len(self.channels)):
+            self.channels[i].used = _mask[i]
+
+    @property
     def mask_indexes(self) -> list:
-        _mask = []
+        mask_ = []
         for i in self.used_indexes:
             if self.channels[i].mask:
-                _mask.append(i)
-        return _mask
+                mask_.append(i)
+        return mask_
 
     @mask_indexes.setter
     def mask_indexes(self, indexes):
         for i in self.used_indexes:
-            if i in indexes:
-                self.channels[i].mask = True
-            else:
-                self.channels[i].mask = False
+            self.channels[i].mask = i in indexes
+
+    @property
+    def mask(self) -> np.ndarray:
+        arr = []
+        for i in range(len(self.channels)):
+            arr.append(i in self.mask_indexes)
+        return np.asarray(arr)
+
+    @mask.setter
+    def mask(self, _mask):
+        for i in range(len(self.channels)):
+            self.channels[i].used = (_mask[i] and (i in self.used_indexes))
 
     @property
     def wavelengths_masked(self) -> np.ndarray:
@@ -268,7 +307,7 @@ class Session:
                     self.channels[k + i].mask = True
                 k += n_channels
 
-        else:
+        else:  # TBD .xml
             pass
 
     def read_channel(self,
@@ -311,6 +350,7 @@ class Session:
             goal_intensity = body.intensity(wavelength=self.channels[index].wavelength, T=self.T_abs_cal)
             self.channels[index].alpha = goal_intensity / np.mean(self.channels[index].data_gained)
 
+    # noinspection PyTypeChecker
     def relative_calibration(self):
         """
         Относительная калибровка
