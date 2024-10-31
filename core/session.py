@@ -21,7 +21,7 @@ class Series:
         self.time: np.ndarray = None   # отсчеты времени
         self.data: np.ndarray = None   # значения
 
-        self.mask: bool = False         # применять обработку
+        self.mask: bool = True         # применять обработку
         self.n_interp: Union[int, None] = 1024      # число точек интерполяции при загрузке из файла
 
     @staticmethod
@@ -46,7 +46,7 @@ class Channel:
         self.wavelength = wavelength  # длина волны
 
         # 0 - TimeSynchro Series, 1 - Calibration Series, 2 - Measurement Series
-        self.Series = [Series()] * 3
+        self.Series = [Series() for _ in range(3)]
         # 0 - данные сеанса для определения временных сдвигов
         # 1 - данные калибровочного сеанса
         # 2 - данные эксперимента
@@ -118,7 +118,7 @@ class Channel:
 
     def clear_all(self) -> None:
         print("Channel #{} :: clear_all()".format(self.number))
-        self.Series = [Series()] * 3
+        self.Series = [Series() for _ in range(3)]
 
     def read(self, filepath: str, format_='txt'):
         print("Channel #{} :: read()".format(self.number))
