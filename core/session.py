@@ -65,6 +65,7 @@ class Channel:
 
     @data.setter
     def data(self, _data: np.ndarray):
+        print("Channel #{} :: @data.setter".format(self.number))
         self.Series[self.current_stage.value].data = _data
 
     @property
@@ -73,6 +74,7 @@ class Channel:
 
     @time.setter
     def time(self, _time: np.ndarray):
+        print("Channel #{} :: @time.setter".format(self.number))
         self.Series[self.current_stage.value].time = _time
 
     @property
@@ -88,6 +90,7 @@ class Channel:
         return self.time - self.timedelta
 
     def find_peak(self) -> tuple:
+        print("Channel #{} :: find_peak()".format(self.number))
         peak = np.argmax(self.data)
         return self.time[peak], self.data[peak]
 
@@ -97,6 +100,7 @@ class Channel:
 
     @mask.setter
     def mask(self, _mask: bool):
+        print("Channel #{} :: @mask.setter".format(self.number))
         self.Series[self.current_stage.value].mask = _mask
 
     @property
@@ -105,15 +109,19 @@ class Channel:
 
     @n_interp.setter
     def n_interp(self, _val: Union[int, None]):
+        print("Channel #{} :: @n_interp.setter".format(self.number))
         self.Series[self.current_stage.value].n_interp = _val
 
     def erase_current(self) -> None:
+        print("Channel #{} :: erase_current()".format(self.number))
         self.Series[self.current_stage.value] = Series()
 
     def clear_all(self) -> None:
+        print("Channel #{} :: clear_all()".format(self.number))
         self.Series = [Series()] * 3
 
     def read(self, filepath: str, format_='txt'):
+        print("Channel #{} :: read()".format(self.number))
         match format_:
             case 'txt':
                 self.read_txt(filepath)
@@ -123,6 +131,7 @@ class Channel:
                 self.read_txt(filepath)
 
     def read_txt(self, filepath: str):
+        print("Channel #{} :: read_txt()".format(self.number))
         series = np.asarray(np.loadtxt(filepath))
         if series.shape != (len(series), 2):
             raise "Неверный формат данных"
@@ -131,6 +140,7 @@ class Channel:
             Series.interpolate(time=series[:, 0], data=series[:, 1], n_interp=self.n_interp)
 
     def read_wfm(self, filepath: str, frameNo=0):
+        print("Channel #{} :: read_wfm()".format(self.number))
         try:
             volts, tstart, tscale, tfrac, tdatefrac, tdate = tekwfm.read_wfm(filepath)
         except tekwfm.WfmReadError:
@@ -201,6 +211,7 @@ class Session:
 
     @stage.setter
     def stage(self, _stage: Stages = Stages.Measurement):
+        print("Session :: @stage.setter")
         for i in range(len(self.channels)):
             self.channels[i].current_stage = _stage
 
@@ -215,6 +226,7 @@ class Session:
 
     @used_indexes.setter
     def used_indexes(self, indexes):
+        print("Session :: @used_indexes.setter")
         for i in range(len(self.channels)):
             if i in indexes:
                 self.channels[i].used = True
@@ -233,6 +245,7 @@ class Session:
 
     @used.setter
     def used(self, _mask):
+        print("Session :: @used.setter")
         for i in range(len(self.channels)):
             self.channels[i].used = _mask[i]
 
@@ -246,6 +259,7 @@ class Session:
 
     @mask_indexes.setter
     def mask_indexes(self, indexes):
+        print("Session :: @mask_indexes.setter")
         for i in self.used_indexes:
             self.channels[i].mask = i in indexes
 
@@ -258,6 +272,7 @@ class Session:
 
     @mask.setter
     def mask(self, _mask):
+        print("Session :: @mask.setter")
         for i in range(len(self.channels)):
             self.channels[i].used = (_mask[i] and (i in self.used_indexes))
 
@@ -283,7 +298,7 @@ class Session:
         """
         Прочитать данные из файлов filepaths и записать в каналы в соответствии с конфигурацией
         """
-
+        print("Session :: read_channels()")
         if format_ in ['txt', 'wfm']:
 
             for i, filepath in enumerate(filepaths):
@@ -318,7 +333,7 @@ class Session:
         """
         Прочитать данные из файла filepath и записать в новый канал
         """
-
+        print("Session :: read_channel()")
         self.channels[index].read(filepath=filepath, format_=format_)
         self.channels[index].mask = True
 
@@ -334,6 +349,7 @@ class Session:
         Установка коэффициента усиления.
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
+        print("Session :: set_gain()")
         for i, index in enumerate(self.used_indexes):
             if values is None:
                 goal_level = Session.__goal_level(wavelength=self.channels[index].wavelength, T=self.T_gain_cal)
@@ -345,6 +361,7 @@ class Session:
         """
         Абсолютная калибровка
         """
+        print("Session :: absolute_calibration()")
         body = Body(eps=self.eps_abs_cal)
         for index in self.mask_indexes:
             goal_intensity = body.intensity(wavelength=self.channels[index].wavelength, T=self.T_abs_cal)
@@ -355,6 +372,7 @@ class Session:
         """
         Относительная калибровка
         """
+        print("Session :: relative_calibration()")
         body = Body(eps=self.eps_rel_cal)
         I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths_masked]
         i_max = np.argmax(I_spectrum)
@@ -367,6 +385,7 @@ class Session:
         """
         Вычислить смещения каналов по времени
         """
+        print("Session :: set_timedelta()")
         first = self.mask_indexes[0]
         t0, _ = self.channels[first].find_peak()
         self.channels[first].timedelta = 0.
@@ -381,6 +400,7 @@ class Session:
         """
         Расчет температуры по Планку
         """
+        print("Session :: get_temperature()")
         bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
                              for i in self.mask_indexes])
         left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
@@ -425,6 +445,7 @@ class Session:
         """
         Сохранить сессию
         """
+        print("Session :: save()")
         info = {'channels': []}
 
         for attr_name in ['T_gain_cal', 'T_abs_cal', 'eps_abs_cal', 'T_rel_cal', 'eps_rel_cal',
@@ -455,6 +476,7 @@ class Session:
         """
         Загрузить сессию
         """
+        print("Session :: load()")
         with open(filepath, 'r') as dump:
             info = json.load(dump)
 
@@ -489,6 +511,7 @@ class Session:
         """
         Очистить сессию
         """
+        print("Session :: clear()")
         self.__init__()
         self.save()
 
@@ -496,6 +519,7 @@ class Session:
         """
         Очистить данные каналов
         """
+        print("Session :: erase()")
         for channel in self.channels:
             channel.erase_current()
 

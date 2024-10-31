@@ -8,8 +8,11 @@ import numpy as np
 
 # MENU Файл
 def new_session(event=None):
-    global session
+    global session, session_filepath
+
     session = Session(channels=channels_initial)
+    session_filepath = None
+
     update_interface()
 
 
@@ -22,8 +25,8 @@ def open_session(event=None):
 
 
 def save_session(event=None):
-    update_session()
     if session_filepath:
+        # update_session()
         session.save(session_filepath)
     else:
         save_as_session()
@@ -31,7 +34,7 @@ def save_session(event=None):
 
 def save_as_session(event=None):
     global session_filepath
-    update_session()
+    # update_session()
     session_filepath = filedialog.asksaveasfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
     session.save(session_filepath)
 
@@ -285,9 +288,11 @@ def export_temperatures(event=None):
     pass
 
 
-# Вкладка "Основное"
+# Основное
 def update_session(*args):
+    global session
 
+    # print('===== UPDATE SESSION =====')
     session.used = list(map(lambda var: var.get(), usage))
 
     tab_index = root.notebook_main.index(root.notebook_main.select())
@@ -313,7 +318,7 @@ def update_session(*args):
 
             for stage in Stages:
                 n_interp = None
-                mask = True
+                mask = False
                 match stage.value:
                     case Stages.TimeSynchro.value:
                         mask = sync_mask[j].get()
@@ -330,57 +335,89 @@ def update_session(*args):
 
                 session.channels[j].Series[stage.value].n_interp = n_interp
                 session.channels[j].Series[stage.value].mask = mask
+                # if j + 1 in [9, 7, 5]:
+                #     print('channel {} - stage {} - mask {} | {}'.format(j + 1, stage.name, mask, session.channels[j].Series[stage.value].mask))
 
         except TclError:
             pass
 
+    # update_interface()
+
 
 def update_interface(*args):
-    global usage, lambdas, deltas, alphas, gains
 
-    current_stage = session.stage
-    root.notebook_main.select(current_stage.value + 1)
+    global session, root
+    global usage, lambdas, deltas, alphas, gains
+    global sync_mask, cal_mask, exp_mask
+    global usage_checkbuttons, lambdas_spinboxes, gains_spinboxes, deltas_spinboxes, alphas_spinboxes
+    global sync_checkbuttons, cal_checkbuttons, exp_checkbuttons
 
     for stage in Stages:
         n_interp = session.first_channel.Series[stage.value].n_interp
         match stage.value:
             case Stages.TimeSynchro.value:
                 root.fr_interp_sync.set(bool(n_interp))
+                root.checkbutton_fr_interp_sync.update()
                 root.fr_n_interp_sync.set(n_interp)
+                root.entry_n_fr_interp_sync.update()
             case Stages.Calibration.value:
                 root.fr_interp_cal.set(bool(n_interp))
+                root.checkbutton_fr_interp_cal.update()
                 root.fr_n_interp_cal.set(n_interp)
+                root.entry_n_fr_interp_cal.update()
             case Stages.Measurement.value:
                 root.fr_interp_exp.set(bool(n_interp))
+                root.checkbutton_fr_interp_exp.update()
                 root.fr_n_interp_exp.set(n_interp)
+                root.entry_n_fr_interp_exp.update()
 
     for j in range(10):
-        nch = str(j+1).zfill(2)
-        if j in session.used_indexes:
-            exec("root.use_ch{}.set(True)".format(nch))
-        else:
-            exec("root.use_ch{}.set(False)".format(nch))
+        usage[j].set(j in session.used_indexes)
+        usage_checkbuttons[j].update()
 
         lambdas[j].set(session.channels[j].wavelength)
+        lambdas_spinboxes[j].update()
+
         gains[j].set(session.channels[j].gain)
+        gains_spinboxes[j].update()
+
         deltas[j].set(session.channels[j].timedelta)
+        deltas_spinboxes[j].update()
+
         alphas[j].set(session.channels[j].alpha)
+        alphas_spinboxes[j].update()
 
         for stage in Stages:
             mask = session.channels[j].Series[stage.value].mask
+
             match stage.value:
                 case Stages.TimeSynchro.value:
-                    exec("root.sync_ch{}.set({})".format(nch, mask))
+                    sync_mask[j].set(mask)
+                    sync_checkbuttons[j].update()
                 case Stages.Calibration.value:
-                    exec("root.cal_ch{}.set({})".format(nch, mask))
+                    cal_mask[j].set(mask)
+                    cal_checkbuttons[j].update()
                 case Stages.Measurement.value:
-                    exec("root.temp_ch{}.set({})".format(nch, mask))
+                    exp_mask[j].set(mask)
+                    exp_checkbuttons[j].update()
 
     root.tp_interp_exp.set(bool(session.tp_n_interp_exp))
+    root.checkbutton_tp_interp_calc_exp.update()
     root.tp_n_interp_exp.set(session.tp_n_interp_exp)
+    root.entry_n_tp_interp_calc_exp.update()
+
+    update_usage()
+
+    root._app.update()
+    root._app.update_idletasks()
+
+    current_stage = session.stage
+    root.notebook_main.select(current_stage.value + 1)
 
 
 def update_usage(*args):
+    global session
+
     for j in range(10):
         if usage[j].get():
             lambdas_spinboxes[j].configure(state=NORMAL)
@@ -390,13 +427,26 @@ def update_usage(*args):
 
             sync_checkbuttons[j].configure(state=NORMAL)
             cal_checkbuttons[j].configure(state=NORMAL)
-            temp_checkbuttons[j].configure(state=NORMAL)
+            exp_checkbuttons[j].configure(state=NORMAL)
 
             sync_load_buttons[j].configure(state=NORMAL)
             cal_load_buttons[j].configure(state=NORMAL)
             exp_load_buttons[j].configure(state=NORMAL)
 
         else:
+            for stage in Stages:
+                session.channels[j].Series[stage.value].mask = False
+                match stage.value:
+                    case Stages.TimeSynchro.value:
+                        sync_mask[j].set(False)
+                        sync_checkbuttons[j].update()
+                    case Stages.Calibration.value:
+                        cal_mask[j].set(False)
+                        cal_checkbuttons[j].update()
+                    case Stages.Measurement.value:
+                        exp_mask[j].set(False)
+                        exp_checkbuttons[j].update()
+
             lambdas_spinboxes[j].configure(state=DISABLED)
             deltas_spinboxes[j].configure(state=DISABLED)
             alphas_spinboxes[j].configure(state=DISABLED)
@@ -404,64 +454,85 @@ def update_usage(*args):
 
             sync_checkbuttons[j].configure(state=DISABLED)
             cal_checkbuttons[j].configure(state=DISABLED)
-            temp_checkbuttons[j].configure(state=DISABLED)
+            exp_checkbuttons[j].configure(state=DISABLED)
 
             sync_load_buttons[j].configure(state=DISABLED)
             cal_load_buttons[j].configure(state=DISABLED)
             exp_load_buttons[j].configure(state=DISABLED)
 
 
+# def update_lambdas(*args):
+#     global session
+#     try:
+#         for j in range(10):
+#             session.channels[j].wavelength = lambdas[j].get()
+#     except TclError as e:
+#         print(e)
+#
+#
+# def update_deltas(*args):
+#     global session
+#     try:
+#         for j in range(10):
+#             session.channels[j].timedelta = deltas[j].get()
+#     except TclError as e:
+#         print(e)
+#
+#
+# def update_alphas(*args):
+#     global session
+#     try:
+#         for j in range(10):
+#             session.channels[j].alpha = alphas[j].get()
+#     except TclError as e:
+#         print(e)
+#
+#
+# def update_gains(*args):
+#     global session
+#     try:
+#         for j in range(10):
+#             session.channels[j].gain = gains[j].get()
+#     except TclError as e:
+#         print(e)
+#
+#
+# def update_sync_mask(*args):
+#     global session
+#     for j in range(10):
+#         session.channels[j].Series[Stages.TimeSynchro.value].mask = sync_mask[j].get()
+#
+#
+# def update_cal_mask(*args):
+#     global session
+#     for j in range(10):
+#         session.channels[j].Series[Stages.Calibration.value].mask = cal_mask[j].get()
+#
+#
+# def update_exp_mask(*args):
+#     global session
+#     for j in range(10):
+#         session.channels[j].Series[Stages.Measurement.value].mask = exp_mask[j].get()
+
+
 if __name__ == "__main__":
     root = AppBuilder(path="window.xml")
 
-    root.notebook_main.select(0)
-
-    # Основное
-    usage, lambdas, deltas, alphas, gains = [], [], [], [], []
-    for i in range(10):
-        chn = str(i + 1).zfill(2)
-        exec("usage.append(root.use_ch{})".format(chn))
-        exec("lambdas.append(root.lambda{})".format(chn))
-        exec("deltas.append(root.deltat{})".format(chn))
-        exec("alphas.append(root.alpha{})".format(chn))
-        exec("gains.append(root.gain{})".format(chn))
-
-    for i in range(10):
-        usage[i].set(True)
-        usage[i].trace('w', update_usage)
-
-        lambdas[i].set(initials.configuration[i][1])
-
-        deltas[i].set(0.0)
-
-        alphas[i].set(1.0)
-
-        gains[i].set(1.0)
-
-    # Другие вкладки
-    sync_mask, cal_mask, exp_mask = [], [], []
-    for i in range(10):
-        chn = str(i + 1).zfill(2)
-        exec("sync_mask.append(root.sync_ch{})".format(chn))  # Синхронизация
-        exec("cal_mask.append(root.cal_ch{})".format(chn))    # Калибровка
-        exec("exp_mask.append(root.temp_ch{})".format(chn))   # Эксперимент
-
     # Сессия
-    channels_initial = [Channel(wavelength=wavelength, current_stage=Stages.Measurement)
-                        for wavelength in map(lambda var: var.get(), lambdas)]
+    channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
     session: Session = Session(channels=channels_initial)
     session_filepath = None
 
-    update_session()
+    root.notebook_main.select(0)
 
     # Checkbuttons
-    usage_checkbuttons, sync_checkbuttons, cal_checkbuttons, temp_checkbuttons = [], [], [], []
+    usage_checkbuttons, sync_checkbuttons, cal_checkbuttons, exp_checkbuttons = [], [], [], []
     for i in range(10):
         chn = str(i + 1).zfill(2)
         exec("usage_checkbuttons.append(root.checkbutton_channel_{})".format(chn))
         exec("sync_checkbuttons.append(root.checkbutton_ch{}_sync)".format(chn))
         exec("cal_checkbuttons.append(root.checkbutton_ch{}_cal)".format(chn))
-        exec("temp_checkbuttons.append(root.checkbutton_ch{}_calc_exp)".format(chn))
+        exec("exp_checkbuttons.append(root.checkbutton_ch{}_calc_exp)".format(chn))
 
     # Spinboxes
     lambdas_spinboxes, deltas_spinboxes, alphas_spinboxes, gains_spinboxes = \
@@ -480,6 +551,50 @@ if __name__ == "__main__":
         exec("sync_load_buttons.append(root.button_load_ch{}_sync)".format(chn))
         exec("cal_load_buttons.append(root.button_load_ch{}_cal)".format(chn))
         exec("exp_load_buttons.append(root.button_load_ch{}_exp)".format(chn))
+
+    # Основные переменные
+    usage, lambdas, deltas, alphas, gains = [], [], [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("usage.append(root.use_ch{})".format(chn))
+        exec("lambdas.append(root.lambda{})".format(chn))
+        exec("deltas.append(root.deltat{})".format(chn))
+        exec("alphas.append(root.alpha{})".format(chn))
+        exec("gains.append(root.gain{})".format(chn))
+
+    # for i in range(10):
+    #     # # usage[i].set(True)
+    #     # usage[i].trace('w', update_usage)
+    #     #
+    #     # # lambdas[i].set(initials.configuration[i][1])
+    #     # lambdas[i].trace('w', update_lambdas)
+    #     #
+    #     # # deltas[i].set(0.0)
+    #     # deltas[i].trace('w', update_deltas)
+    #     #
+    #     # # alphas[i].set(1.0)
+    #     # alphas[i].trace('w', update_alphas)
+    #     #
+    #     # # gains[i].set(1.0)
+    #     # gains[i].trace('w', update_gains)
+    #     pass
+
+    # Другие переменные
+    sync_mask, cal_mask, exp_mask = [], [], []
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        exec("sync_mask.append(root.sync_ch{})".format(chn))  # Синхронизация
+        exec("cal_mask.append(root.cal_ch{})".format(chn))    # Калибровка
+        exec("exp_mask.append(root.temp_ch{})".format(chn))   # Эксперимент
+
+    # for i in range(10):
+    #     # sync_mask[i].trace('w', update_sync_mask)
+    #     # cal_mask[i].trace('w', update_cal_mask)
+    #     # exp_mask[i].trace('w', update_exp_mask)
+    #     pass
+
+    # update_session()
+    update_interface()
 
     root.connect_callbacks(globals())
 
