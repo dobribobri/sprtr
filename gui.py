@@ -1,5 +1,6 @@
+from functools import partial
 from formation import AppBuilder
-from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED
+from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED, messagebox
 import core.initials as initials
 from core.session import Session, Channel, Stages
 import os
@@ -49,6 +50,18 @@ def on_close(event=None):
 
 
 # MENU Инструменты
+def set_gain(T):
+    global session
+    session.T_gain_cal = T
+    try:
+        session.set_gain()
+    except TypeError:
+        messagebox.showerror(title='Ошибка', message='Невозможно рассчитать коэффициенты усиления. \n Данные сеанса неверные либо отсутствуют')
+    finally:
+        update_interface()
+        root.notebook_main.select(Stages.Calibration.value + 1)
+
+
 def filter_convolve(event=None):
     pass
 
@@ -83,22 +96,6 @@ def filter_parameters(event=None):
 
 
 def filter_clear(event=None):
-    pass
-
-
-def set_gain_T1500_depr(event=None):
-    pass
-
-
-def set_gain_T1773_depr(event=None):
-    pass
-
-
-def set_gain_T2000_depr(event=None):
-    pass
-
-
-def set_gain_T2500_depr(event=None):
     pass
 
 
@@ -293,7 +290,7 @@ def export_temperatures(event=None):
 
 # Основное
 def update_session(*args):
-    global session, root
+    global session
 
     # root._app.update()
     # root._app.update_idletasks()
@@ -333,16 +330,11 @@ def update_session(*args):
                         if root.fr_interp_exp.get():
                             n_interp = root.fr_n_interp_exp.get()
 
-                if j == 10 - 1:
-                    print('{} : {} - {}'.format(10, stage, mask))
                 session.channels[j].Series[stage.value].n_interp = n_interp
                 session.channels[j].Series[stage.value].mask = mask
 
         except TclError:
             pass
-
-    for stage in Stages:
-        print('{} : {} - {}'.format(10, stage, session.last_channel.Series[stage.value].mask))
 
     tab_index = root.notebook_main.index(root.notebook_main.select())
     stage_val = tab_index - 1
@@ -353,12 +345,7 @@ def update_session(*args):
 
 
 def update_interface(*args):
-
-    global session, root
-    global usage, lambdas, deltas, alphas, gains
-    global sync_mask, cal_mask, exp_mask
-    global usage_checkbuttons, lambdas_spinboxes, gains_spinboxes, deltas_spinboxes, alphas_spinboxes
-    global sync_checkbuttons, cal_checkbuttons, exp_checkbuttons
+    global root
 
     for stage in Stages:
         n_interp = session.first_channel.Series[stage.value].n_interp
@@ -426,7 +413,7 @@ def update_interface(*args):
 
 
 def update_usage(*args):
-    global session
+    global session, root
 
     for j in range(10):
         if usage[j].get():
@@ -531,6 +518,8 @@ if __name__ == "__main__":
 
     update_interface()
 
+    set_gain_T1500_depr, set_gain_T1773_depr, set_gain_T2000_depr, set_gain_T2500_depr = \
+        partial(set_gain, T=1500), partial(set_gain, T=1773), partial(set_gain, T=2000), partial(set_gain, T=2500)
     root.connect_callbacks(globals())
 
     root._app.protocol("WM_DELETE_WINDOW", on_close)
