@@ -3,7 +3,7 @@ from formation import AppBuilder
 from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED, messagebox
 import core.initials as initials
 from core.session import Session, Channel, Stages
-import os
+import re
 import numpy as np
 
 
@@ -90,8 +90,42 @@ def filter_clear(event=None):
 
 
 # Работа с фалами
-def load_channel(event=None, channel=1, stage=Stages.Measurement):
-    pass
+def load_channel(event=None, channel=0, stage=Stages.Measurement):
+    global session, root
+
+    print('Globals :: load_channel() | channel {} | stage {}'.format(channel, stage))
+
+    index = channel
+    session.stage = stage
+
+    filepath = filedialog.askopenfilename(filetypes=[('Текстовый файл', '*.txt'), ('Файл WFM', '*.wfm')])
+    try:
+        ext = re.split(r'\.', filepath)
+        ext = ext[-1]
+    except TypeError:
+        return
+
+    # noinspection PyBroadException
+    try:
+        session.read_channel(index=index, filepath=filepath, format_=ext)
+
+        match stage.value:
+            case Stages.TimeSynchro.value:
+                sync_load_buttons[index].configure(background="lightgreen")
+            case Stages.Calibration.value:
+                cal_load_buttons[index].configure(background="lightgreen")
+            case Stages.Measurement.value:
+                exp_load_buttons[index].configure(background="lightgreen")
+
+    except Exception as e:
+        messagebox.showerror(title='Ошибка чтения файла', message=str(e))
+        match stage.value:
+            case Stages.TimeSynchro.value:
+                sync_load_buttons[index].configure(background="pink")
+            case Stages.Calibration.value:
+                cal_load_buttons[index].configure(background="pink")
+            case Stages.Measurement.value:
+                exp_load_buttons[index].configure(background="pink")
 
 
 def load_all(event=None, stage=Stages.Measurement):
@@ -240,17 +274,20 @@ def update_interface(*args):
 
         for stage in Stages:
             mask = session.channels[j].Series[stage.value].mask
-
+            loaded = isinstance(session.channels[j].Series[stage.value].data, np.ndarray)
             match stage.value:
                 case Stages.TimeSynchro.value:
                     sync_mask[j].set(mask)
                     # sync_checkbuttons[j].update()
+                    sync_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
                 case Stages.Calibration.value:
                     cal_mask[j].set(mask)
                     # cal_checkbuttons[j].update()
+                    cal_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
                 case Stages.Measurement.value:
                     exp_mask[j].set(mask)
                     # exp_checkbuttons[j].update()
+                    exp_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
 
     root.tp_interp_exp.set(bool(session.tp_n_interp_exp))
     # root.checkbutton_tp_interp_calc_exp.update()
@@ -347,6 +384,8 @@ if __name__ == "__main__":
         exec("cal_load_buttons.append(root.button_load_ch{}_cal)".format(chn))
         exec("exp_load_buttons.append(root.button_load_ch{}_exp)".format(chn))
 
+    original_button_color = root.button_load_all_exp.cget("background")
+
     # Основные переменные
     usage, lambdas, deltas, alphas, gains = [], [], [], [], []
     for i in range(10):
@@ -379,9 +418,9 @@ if __name__ == "__main__":
         s += 'load_ch{}_sync, load_ch{}_cal, load_ch{}_exp, '.format(chn, chn, chn)
     s = s[:-2] + ' = '
     for i in range(10):
-        s += 'partial(load_channel, channel=i, stage=Stages.TimeSynchro), '
-        s += 'partial(load_channel, channel=i, stage=Stages.Calibration), '
-        s += 'partial(load_channel, channel=i, stage=Stages.Measurement), '
+        s += 'partial(load_channel, channel={}, stage=Stages.TimeSynchro), '.format(i)
+        s += 'partial(load_channel, channel={}, stage=Stages.Calibration), '.format(i)
+        s += 'partial(load_channel, channel={}, stage=Stages.Measurement), '.format(i)
     exec(s[:-2])
 
     load_all_sync, load_all_cal, load_all_exp = partial(load_all, stage=Stages.TimeSynchro), \

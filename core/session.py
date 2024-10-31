@@ -334,6 +334,7 @@ class Session:
         Прочитать данные из файла filepath и записать в новый канал
         """
         print("Session :: read_channel()")
+        self.channels[index].number = index + 1
         self.channels[index].read(filepath=filepath, format_=format_)
         self.channels[index].mask = True
 
@@ -461,7 +462,12 @@ class Session:
 
             for series in channel.Series:
                 fields_series = {}
-                for attr_name in ['time', 'data', 'mask', 'n_interp']:
+                for attr_name in ['time', 'data']:
+                    field = getattr(series, attr_name)
+                    if isinstance(field, np.ndarray):
+                        field = field.tolist()
+                    fields_series[attr_name] = field
+                for attr_name in ['mask', 'n_interp']:
                     fields_series[attr_name] = getattr(series, attr_name)
 
                 fields['series'].append(fields_series)
@@ -498,7 +504,12 @@ class Session:
             _Series = []
             for j in range(n_series):
                 series = Series()
-                for attr_name in ['time', 'data', 'mask', 'n_interp']:
+                for attr_name in ['time', 'data']:
+                    val = info['channels'][i]['series'][j][attr_name]
+                    if isinstance(val, list):
+                        val = np.array(val)
+                    setattr(series, attr_name, val)
+                for attr_name in ['mask', 'n_interp']:
                     setattr(series, attr_name, info['channels'][i]['series'][j][attr_name])
                 _Series.append(series)
 
