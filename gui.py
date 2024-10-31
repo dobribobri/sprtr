@@ -50,7 +50,7 @@ def on_close(event=None):
 
 
 # MENU Инструменты
-def set_gain(T):
+def set_gain(event=None, T=2500):
     global session
     session.T_gain_cal = T
     try:
@@ -62,32 +62,22 @@ def set_gain(T):
         root.notebook_main.select(Stages.Calibration.value + 1)
 
 
-def filter_convolve(event=None):
-    pass
-
-
-def filter_fft(event=None):
-    pass
-
-
-def filter_savgol(event=None):
-    pass
-
-
-def filter_rect(event=None):
-    pass
-
-
-def filter_lowess(event=None):
-    pass
-
-
-def filter_gauss(event=None):
-    pass
-
-
-def filter_spline(event=None):
-    pass
+def apply_filter(event=None, name='fft'):
+    match name:
+        case 'convolve':
+            pass
+        case 'fft':
+            pass
+        case 'savgol':
+            pass
+        case 'rect':
+            pass
+        case 'lowess':
+            pass
+        case 'gauss':
+            pass
+        case 'spline':
+            pass
 
 
 def filter_parameters(event=None):
@@ -99,59 +89,25 @@ def filter_clear(event=None):
     pass
 
 
+# Работа с фалами
+def load_channel(event=None, channel=1, stage=Stages.Measurement):
+    pass
+
+
+def load_all(event=None, stage=Stages.Measurement):
+    pass
+
+
+def clear_all(event=None, stage=Stages.Measurement):
+    pass
+
+
+# Визуализация
+def show(event=None, stage=Stages.Measurement):
+    pass
+
+
 # Вкладка "Синхронизация"
-def load_all_sync(event=None):
-    pass
-
-
-def clear_all_sync(event=None):
-    pass
-
-
-def load_ch01_sync(event=None):
-    pass
-
-
-def load_ch02_sync(event=None):
-    pass
-
-
-def load_ch03_sync(event=None):
-    pass
-
-
-def load_ch04_sync(event=None):
-    pass
-
-
-def load_ch05_sync(event=None):
-    pass
-
-
-def load_ch06_sync(event=None):
-    pass
-
-
-def load_ch07_sync(event=None):
-    pass
-
-
-def load_ch08_sync(event=None):
-    pass
-
-
-def load_ch09_sync(event=None):
-    pass
-
-
-def load_ch10_sync(event=None):
-    pass
-
-
-def show_sync(event=None):
-    pass
-
-
 def apply_sync(event=None):
     pass
 
@@ -162,58 +118,6 @@ def set_eps_cal(event=None):
     child_w.title("Излучательная способность эталона")
 
 
-def load_all_cal(event=None):
-    pass
-
-
-def clear_all_cal(event=None):
-    pass
-
-
-def load_ch01_cal(event=None):
-    pass
-
-
-def load_ch02_cal(event=None):
-    pass
-
-
-def load_ch03_cal(event=None):
-    pass
-
-
-def load_ch04_cal(event=None):
-    pass
-
-
-def load_ch05_cal(event=None):
-    pass
-
-
-def load_ch06_cal(event=None):
-    pass
-
-
-def load_ch07_cal(event=None):
-    pass
-
-
-def load_ch08_cal(event=None):
-    pass
-
-
-def load_ch09_cal(event=None):
-    pass
-
-
-def load_ch10_cal(event=None):
-    pass
-
-
-def show_cal(event=None):
-    pass
-
-
 def apply_cal(event=None):
     pass
 
@@ -222,58 +126,6 @@ def apply_cal(event=None):
 def set_eps_exp(event=None):
     child_w = Toplevel(root._app)
     child_w.title("Излучательная способность образца")
-
-
-def load_all_exp(event=None):
-    pass
-
-
-def clear_all_exp(event=None):
-    pass
-
-
-def load_ch01_exp(event=None):
-    pass
-
-
-def load_ch02_exp(event=None):
-    pass
-
-
-def load_ch03_exp(event=None):
-    pass
-
-
-def load_ch04_exp(event=None):
-    pass
-
-
-def load_ch05_exp(event=None):
-    pass
-
-
-def load_ch06_exp(event=None):
-    pass
-
-
-def load_ch07_exp(event=None):
-    pass
-
-
-def load_ch08_exp(event=None):
-    pass
-
-
-def load_ch09_exp(event=None):
-    pass
-
-
-def load_ch10_exp(event=None):
-    pass
-
-
-def show_exp(event=None):
-    pass
 
 
 def calculate_temperatures(event=None):
@@ -520,6 +372,31 @@ if __name__ == "__main__":
 
     set_gain_T1500_depr, set_gain_T1773_depr, set_gain_T2000_depr, set_gain_T2500_depr = \
         partial(set_gain, T=1500), partial(set_gain, T=1773), partial(set_gain, T=2000), partial(set_gain, T=2500)
+
+    s = ''
+    for i in range(10):
+        chn = str(i + 1).zfill(2)
+        s += 'load_ch{}_sync, load_ch{}_cal, load_ch{}_exp, '.format(chn, chn, chn)
+    s = s[:-2] + ' = '
+    for i in range(10):
+        s += 'partial(load_channel, channel=i, stage=Stages.TimeSynchro), '
+        s += 'partial(load_channel, channel=i, stage=Stages.Calibration), '
+        s += 'partial(load_channel, channel=i, stage=Stages.Measurement), '
+    exec(s[:-2])
+
+    load_all_sync, load_all_cal, load_all_exp = partial(load_all, stage=Stages.TimeSynchro), \
+        partial(load_all, stage=Stages.Calibration), partial(load_all, stage=Stages.Measurement)
+    clear_all_sync, clear_all_cal, clear_all_exp = partial(clear_all, stage=Stages.TimeSynchro), \
+        partial(clear_all, stage=Stages.Calibration), partial(clear_all, stage=Stages.Measurement)
+
+    show_sync, show_cal, show_exp = partial(show, stage=Stages.TimeSynchro), partial(show, stage=Stages.Calibration), \
+        partial(show, stage=Stages.Measurement)
+
+    filter_convolve, filter_fft, filter_savgol, filter_rect, filter_lowess, filter_gauss, filter_spline = \
+        partial(apply_filter, name='convolve'), partial(apply_filter, name='fft'), partial(apply_filter, name='savgol'), \
+        partial(apply_filter, name='rect'), partial(apply_filter, name='lowess'), partial(apply_filter, name='gauss'), \
+        partial(apply_filter, name='spline')
+
     root.connect_callbacks(globals())
 
     root._app.protocol("WM_DELETE_WINDOW", on_close)
