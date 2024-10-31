@@ -95,10 +95,15 @@ def load_channel(event=None, channel=0, stage=Stages.Measurement):
 
     print('Globals :: load_channel() | channel {} | stage {}'.format(channel, stage))
 
+    update_session()
+
     index = channel
     session.stage = stage
 
     filepath = filedialog.askopenfilename(filetypes=[('Текстовый файл', '*.txt'), ('Файл WFM', '*.wfm')])
+    if not filepath:
+        return
+
     try:
         ext = re.split(r'\.', filepath)
         ext = ext[-1]
@@ -129,11 +134,46 @@ def load_channel(event=None, channel=0, stage=Stages.Measurement):
 
 
 def load_all(event=None, stage=Stages.Measurement):
-    pass
+    global session, root
+
+    print('Globals :: load_all()')
+
+    update_session()
+
+    session.stage = stage
+
+    filepaths = filedialog.askopenfilenames(filetypes=[('Файл CSV', '*.csv'), ('Файл DAT', '*.dat'),
+                                                       ('Текстовый файл', '*.txt'), ('Файл WFM', '*.wfm')])
+    if not filepaths:
+        return
+
+    extensions = []
+    try:
+        for filepath in filepaths:
+            ext = re.split(r'\.', filepath)
+            extensions.append(ext[-1])
+    except TypeError:
+        return
+
+    if len(np.unique(extensions)) > 1:
+        messagebox.showerror(title='Ошибка', message="Пожалуйста, выберите файлы одного и того же типа")
+
+    ext = np.unique(extensions)[0]
+
+    # noinspection PyBroadException
+    try:
+        session.read_channels(filepaths=filepaths, format_=ext)
+    except Exception as e:
+        messagebox.showerror(title='Ошибка чтения файла', message=str(e))
+
+    update_interface()
 
 
 def clear_all(event=None, stage=Stages.Measurement):
-    pass
+    global session, root
+
+    session.erase()
+    update_interface()
 
 
 # Визуализация

@@ -131,7 +131,7 @@ class Channel:
                 self.read_txt(filepath)
 
     def read_txt(self, filepath: str):
-        print("Channel #{} :: read_txt()".format(self.number))
+        print("Channel #{} :: read_txt() | n_interp = {}".format(self.number, self.n_interp))
         series = np.asarray(np.loadtxt(filepath))
         if series.shape != (len(series), 2):
             raise "Неверный формат данных"
@@ -316,7 +316,7 @@ class Session:
                 series = np.asarray(series)
                 n_channels = series.shape[1] - 1
                 for i in range(n_channels):
-
+                    self.channels[k + i].number = k + i + 1
                     self.channels[k + i].time, self.channels[k + i].data = \
                         Series.interpolate(series[:, 0], series[:, i + 1], self.channels[k + i].n_interp)
                     self.channels[k + i].mask = True
