@@ -5,6 +5,7 @@ import core.initials as initials
 from core.session import Session, Channel, Stages
 import re
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 # MENU Файл
@@ -50,6 +51,7 @@ def on_close(event=None):
 
 
 # MENU Инструменты
+# noinspection PyBroadException
 def set_gain(event=None, T=2500):
     global session
     session.T_gain_cal = T
@@ -57,6 +59,8 @@ def set_gain(event=None, T=2500):
         session.set_gain()
     except TypeError:
         messagebox.showerror(title='Ошибка', message='Невозможно рассчитать коэффициенты усиления. \n Данные сеанса неверные либо отсутствуют')
+    except Exception as e:
+        messagebox.showerror(title='Ошибка', message=str(e))
     finally:
         update_interface()
         root.notebook_main.select(Stages.Calibration.value + 1)
@@ -178,12 +182,25 @@ def clear_all(event=None, stage=Stages.Measurement):
 
 # Визуализация
 def show(event=None, stage=Stages.Measurement):
-    pass
+    update_session()
+    fig, ax = plt.subplots()
+    for j, channel in enumerate(session.channels_valid):
+        ax.plot(channel.time_synced, channel.data,
+                label='Канал #{}'.format(channel.number))
+    ax.set_xlabel('Время')
+    ax.set_ylabel('Сигнал')
+    ax.legend(loc='best', frameon=False)
+    ax.grid(ls=':', color='gray')
+    plt.tight_layout()
+    plt.show()
 
 
 # Вкладка "Синхронизация"
 def apply_sync(event=None):
-    pass
+    global session, root
+    update_session()
+    session.set_timedelta()
+    update_interface()
 
 
 # Вкладка "Калибровка"
@@ -391,8 +408,9 @@ if __name__ == "__main__":
     root = AppBuilder(path="window.xml")
 
     # Сессия
-    channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
-    session: Session = Session(channels=channels_initial)
+    # channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
+    # session: Session = Session(channels=channels_initial)
+    session: Session = Session.load('session.json')
     session_filepath = None
 
     root.notebook_main.select(0)

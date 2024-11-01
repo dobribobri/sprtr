@@ -277,12 +277,37 @@ class Session:
             self.channels[i].used = (_mask[i] and (i in self.used_indexes))
 
     @property
+    def channels_masked(self) -> list:
+        return [self.channels[i] for i in self.mask_indexes]
+
+    @property
     def wavelengths_masked(self) -> np.ndarray:
         return np.asarray([self.channels[i].wavelength for i in self.mask_indexes])
 
     @property
-    def channels_masked(self) -> list:
-        return [self.channels[i] for i in self.mask_indexes]
+    def valid_indexes(self) -> list:
+        indexes = []
+        for i, channel in enumerate(self.channels):
+            if isinstance(channel.time, np.ndarray) and \
+                    isinstance(channel.data, np.ndarray) and \
+                    (i in self.mask_indexes):
+                indexes.append(i)
+        return indexes
+
+    @property
+    def valid(self) -> np.ndarray:
+        arr = []
+        for i in range(len(self.channels)):
+            arr.append(i in self.valid_indexes)
+        return np.asarray(arr)
+
+    @property
+    def channels_valid(self) -> list:
+        return [self.channels[i] for i in self.valid_indexes]
+
+    @property
+    def wavelengths_valid(self) -> np.ndarray:
+        return np.asarray([self.channels[i].wavelength for i in self.valid_indexes])
 
     @property
     def sample(self) -> Body:
@@ -351,7 +376,12 @@ class Session:
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
         print("Session :: set_gain()")
-        for i, index in enumerate(self.used_indexes):
+        indexes = []
+        for i in self.used_indexes:
+            if isinstance(self.channels[i].time, np.ndarray) and isinstance(self.channels[i].data, np.ndarray):
+                indexes.append(i)
+
+        for i, index in enumerate(indexes):
             if values is None:
                 goal_level = Session.__goal_level(wavelength=self.channels[index].wavelength, T=self.T_gain_cal)
                 self.channels[index].gain = goal_level / np.mean(self.channels[index].data)
@@ -364,7 +394,7 @@ class Session:
         """
         print("Session :: absolute_calibration()")
         body = Body(eps=self.eps_abs_cal)
-        for index in self.mask_indexes:
+        for index in self.valid_indexes:
             goal_intensity = body.intensity(wavelength=self.channels[index].wavelength, T=self.T_abs_cal)
             self.channels[index].alpha = goal_intensity / np.mean(self.channels[index].data_gained)
 
@@ -375,10 +405,10 @@ class Session:
         """
         print("Session :: relative_calibration()")
         body = Body(eps=self.eps_rel_cal)
-        I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths_masked]
+        I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths_valid]
         i_max = np.argmax(I_spectrum)
-        index_max = self.mask_indexes[i_max]
-        for i, index in enumerate(self.mask_indexes):
+        index_max = self.valid_indexes[i_max]
+        for i, index in enumerate(self.valid_indexes):
             self.channels[index].alpha = I_spectrum[i] / I_spectrum[i_max] * \
                 np.mean(self.channels[index_max].data_gained) / np.mean(self.channels[index].data_gained)
 
@@ -387,10 +417,14 @@ class Session:
         Вычислить смещения каналов по времени
         """
         print("Session :: set_timedelta()")
-        first = self.mask_indexes[0]
+
+        if len(self.valid_indexes) == 0:
+            return
+
+        first = self.valid_indexes[0]
         t0, _ = self.channels[first].find_peak()
         self.channels[first].timedelta = 0.
-        for i in self.mask_indexes[1:]:
+        for i in self.valid_indexes[1:]:
             t1, _ = self.channels[i].find_peak()
             self.channels[i].timedelta = t1 - t0
 
@@ -403,7 +437,7 @@ class Session:
         """
         print("Session :: get_temperature()")
         bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
-                             for i in self.mask_indexes])
+                             for i in self.valid_indexes])
         left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
 
         if t_start is None:
@@ -413,7 +447,7 @@ class Session:
 
         data = []
         lengths = []
-        for i in self.mask_indexes:
+        for i in self.valid_indexes:
             cond = (t_start <= self.channels[i].time_synced) & (self.channels[i].time_synced <= t_stop)
             lengths.append(np.count_nonzero(cond))
             data.append([self.channels[i].time_synced[cond], self.channels[i].data_calibrated[cond]])
@@ -423,14 +457,14 @@ class Session:
             n_interp = np.min(lengths)
 
         time = np.linspace(t_start, t_stop, n_interp)
-        for i, _ in enumerate(self.mask_indexes):
+        for i, _ in enumerate(self.valid_indexes):
             data[i] = np.interp(time, data[i][0], data[i][1])
         self.__data = np.asarray(data).T
 
         if not parallel:
             T = []
             for spectrum in self.__data:
-                T.append(self.sample.temperature(wavelengths=self.wavelengths_masked, intensities=spectrum))
+                T.append(self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=spectrum))
             return time, np.asarray(T)
 
         results = []
@@ -533,6 +567,10 @@ class Session:
         print("Session :: erase()")
         for channel in self.channels:
             channel.erase_current()
+
+    @property
+    def has_valid_channels(self):
+        return len(self.valid_indexes) > 0
 
 
 if __name__ == "__main__":
