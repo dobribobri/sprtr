@@ -250,6 +250,29 @@ class Session:
             self.channels[i].used = _mask[i]
 
     @property
+    def channels_used(self) -> list:
+        return [self.channels[i] for i in self.used_indexes]
+
+    @property
+    def ready_indexes(self) -> list:
+        indexes = []
+        for i in self.used_indexes:
+            if isinstance(self.channels[i].time, np.ndarray) and isinstance(self.channels[i].data, np.ndarray):
+                indexes.append(i)
+        return indexes
+
+    @property
+    def ready(self) -> np.ndarray:
+        arr = []
+        for i in range(len(self.channels)):
+            arr.append(i in self.ready_indexes)
+        return np.asarray(arr)
+
+    @property
+    def channels_ready(self) -> list:
+        return [self.channels[i] for i in self.ready_indexes]
+
+    @property
     def mask_indexes(self) -> list:
         mask_ = []
         for i in self.used_indexes:
@@ -376,12 +399,7 @@ class Session:
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
         print("Session :: set_gain()")
-        indexes = []
-        for i in self.used_indexes:
-            if isinstance(self.channels[i].time, np.ndarray) and isinstance(self.channels[i].data, np.ndarray):
-                indexes.append(i)
-
-        for i, index in enumerate(indexes):
+        for i, index in enumerate(self.ready_indexes):
             if values is None:
                 goal_level = Session.__goal_level(wavelength=self.channels[index].wavelength, T=self.T_gain_cal)
                 self.channels[index].gain = goal_level / np.mean(self.channels[index].data)
@@ -429,7 +447,7 @@ class Session:
             self.channels[i].timedelta = t1 - t0
 
     def process(self, i):
-        return i, self.sample.temperature(wavelengths=self.wavelengths_masked, intensities=self.__data[i])
+        return i, self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=self.__data[i])
 
     def get_temperature(self, t_start: float = None, t_stop: float = None, parallel: bool = True):
         """

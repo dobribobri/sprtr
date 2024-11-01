@@ -29,12 +29,14 @@
       <command menu:command="on_close" menu:compound="none" menu:label="Выход" menu:state="normal"/>
     </tkinter.Menu>
     <tkinter.Menu attr:tearoff="0" menu:compound="none" menu:label="Инструменты" menu:state="normal">
-      <tkinter.Menu attr:tearoff="0" menu:compound="none" menu:label="Коэффициент усиления" menu:state="normal">
-        <command menu:command="set_gain_T1500_depr" menu:compound="none" menu:label="Установить для 1500 К" menu:state="normal"/>
-        <command menu:command="set_gain_T1773_depr" menu:compound="none" menu:label="Установить для 1773 К" menu:state="normal"/>
-        <command menu:command="set_gain_T2000_depr" menu:compound="none" menu:label="Установить для 2000 К" menu:state="normal"/>
-        <command menu:command="set_gain_T2500_depr" menu:compound="none" menu:label="Установить для 2500 К" menu:state="normal"/>
+      <tkinter.Menu attr:tearoff="0" menu:compound="none" menu:label="Установить коэффициент усиления" menu:state="normal">
+        <command menu:command="set_gain_T1500_depr" menu:compound="none" menu:label="1500 К" menu:state="normal"/>
+        <command menu:command="set_gain_T1773_depr" menu:compound="none" menu:label="1773 К" menu:state="normal"/>
+        <command menu:command="set_gain_T2000_depr" menu:compound="none" menu:label="2000 К" menu:state="normal"/>
+        <command menu:command="set_gain_T2500_depr" menu:compound="none" menu:label="2500 К" menu:state="normal"/>
       </tkinter.Menu>
+      <separator/>
+      <checkbutton menu:variable="set_time_interval" menu:compound="none" menu:label="Выбор временного интервала" menu:state="normal"/>
       <separator/>
       <tkinter.Menu attr:tearoff="0" menu:compound="none" menu:label="Применить фильтр" menu:state="normal">
         <command menu:command="filter_convolve" menu:compound="none" menu:label="Сверточный фильтр" menu:state="normal"/>
@@ -145,6 +147,7 @@
   <tkinter.BooleanVar attr:name="temp_ch09" attr:value="True"/>
   <tkinter.BooleanVar attr:name="temp_ch10" attr:value="True"/>
   <tkinter.BooleanVar attr:name="mode_3D" attr:value="False"/>
+  <tkinter.BooleanVar attr:name="set_time_interval" attr:value="True"/>
   <tkinter.ttk.Notebook name="notebook_main" layout:width="704" layout:height="591" layout:x="0" layout:y="0" layout:bordermode="outside">
     <tkinter.Frame name="frame_initial" attr:layout="place" layout:text="Основное">
       <tkinter.ttk.Labelframe name="labelframe_lambda" attr:text="Длина волны &#10;в мкм" attr:layout="place" layout:width="140" layout:height="549" layout:x="111" layout:y="1" layout:bordermode="outside">
@@ -224,8 +227,8 @@
         <tkinter.Checkbutton name="checkbutton_fr_interp_sync" attr:text="Интерполировать" attr:variable="fr_interp_sync" layout:width="147" layout:height="25" layout:x="16" layout:y="155" layout:bordermode="outside"/>
         <tkinter.Label name="label_n_fr_interp_sync" attr:text="Количество точек" layout:width="128" layout:height="25" layout:x="50" layout:y="188" layout:bordermode="outside"/>
         <tkinter.Entry name="entry_n_fr_interp_sync" attr:textvariable="fr_n_interp_sync" layout:width="80" layout:height="25" layout:x="185" layout:y="188" layout:bordermode="outside"/>
-        <tkinter.Button name="button_show_sync" attr:command="show_sync" attr:text="Показать" layout:width="252" layout:height="35" layout:x="390" layout:y="165" layout:bordermode="outside"/>
         <tkinter.Button name="button_clear_all_sync" attr:command="clear_all_sync" attr:text="Очистить" layout:width="200" layout:height="35" layout:x="220" layout:y="25" layout:bordermode="outside"/>
+        <tkinter.Button name="button_show_sync" attr:command="show_sync" attr:text="Показать исходные данные" layout:width="252" layout:height="35" layout:x="390" layout:y="165" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
       <tkinter.LabelFrame name="labelframe_apply_sync" attr:text="Применить к каналам" attr:layout="place" layout:width="686" layout:height="100" layout:x="8" layout:y="250" layout:bordermode="outside">
         <tkinter.Checkbutton name="checkbutton_ch01_sync" attr:text="1" attr:variable="sync_ch01" layout:width="50" layout:height="25" layout:x="8" layout:y="25" layout:bordermode="outside"/>
@@ -240,6 +243,7 @@
         <tkinter.Checkbutton name="checkbutton_ch09_sync" attr:text="9" attr:variable="sync_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch10_sync" attr:text="10" attr:variable="sync_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
+      <tkinter.Button name="button_plot_sync" attr:command="plot_sync" attr:text="График" layout:width="250" layout:height="35" layout:x="230" layout:y="515" layout:bordermode="outside"/>
     </tkinter.Frame>
     <tkinter.Frame name="frame_calibr" attr:layout="place" layout:text="Калибровка">
       <tkinter.ttk.Labelframe name="labelframe_cal_type" attr:text="Тип калибровки" attr:layout="place" layout:width="685" layout:height="80" layout:x="10" layout:y="240" layout:bordermode="outside">
@@ -280,9 +284,10 @@
         <tkinter.Checkbutton name="checkbutton_fr_interp_cal" attr:text="Интерполировать" attr:variable="fr_interp_cal" layout:width="147" layout:height="25" layout:x="16" layout:y="155" layout:bordermode="outside"/>
         <tkinter.Label name="label_n_fr_interp_cal" attr:text="Количество точек" layout:width="128" layout:height="25" layout:x="50" layout:y="188" layout:bordermode="outside"/>
         <tkinter.Entry name="entry_n_fr_interp_cal" attr:textvariable="fr_n_interp_cal" layout:width="80" layout:height="25" layout:x="185" layout:y="188" layout:bordermode="outside"/>
-        <tkinter.Button name="button_show_cal" attr:command="show_cal" attr:text="Показать" layout:width="252" layout:height="35" layout:x="390" layout:y="165" layout:bordermode="outside"/>
         <tkinter.Button name="button_clear_all_cal" attr:command="clear_all_cal" attr:text="Очистить" layout:width="200" layout:height="35" layout:x="220" layout:y="25" layout:bordermode="outside"/>
+        <tkinter.Button name="button_show_cal" attr:command="show_cal" attr:text="Показать исходные данные" layout:width="252" layout:height="35" layout:x="390" layout:y="165" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
+      <tkinter.Button name="button_plot_cal" attr:command="plot_cal" attr:text="График" layout:width="250" layout:height="35" layout:x="230" layout:y="515" layout:bordermode="outside"/>
     </tkinter.Frame>
     <tkinter.Frame name="frame_2" attr:layout="place" layout:text="Эксперимент">
       <tkinter.LabelFrame name="labelframe_load_exp" attr:text="Загрузка данных" attr:layout="place" layout:width="688" layout:height="232" layout:x="8" layout:y="3" layout:bordermode="outside">
@@ -300,8 +305,8 @@
         <tkinter.Checkbutton name="checkbutton_fr_interp_exp" attr:text="Интерполировать" attr:variable="fr_interp_exp" layout:width="147" layout:height="25" layout:x="16" layout:y="155" layout:bordermode="outside"/>
         <tkinter.Label name="label_n_fr_interp_exp" attr:text="Количество точек" layout:width="128" layout:height="25" layout:x="50" layout:y="185" layout:bordermode="outside"/>
         <tkinter.Entry name="entry_n_fr_interp_exp" attr:textvariable="fr_n_interp_exp" layout:width="80" layout:height="25" layout:x="185" layout:y="185" layout:bordermode="outside"/>
-        <tkinter.Button name="button_show_exp" attr:command="show_exp" attr:text="Показать" layout:width="252" layout:height="35" layout:x="390" layout:y="165" layout:bordermode="outside"/>
         <tkinter.Button name="button_clear_all_exp" attr:command="clear_all_exp" attr:text="Очистить" layout:width="200" layout:height="35" layout:x="220" layout:y="25" layout:bordermode="outside"/>
+        <tkinter.Button name="button_show_exp" attr:command="show_exp" attr:text="Показать исходные данные" layout:width="252" layout:height="35" layout:x="390" layout:y="165" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
       <tkinter.ttk.Labelframe name="labelframe_params_calc_exp" attr:text="Параметры расчета температуры" attr:layout="place" layout:width="686" layout:height="165" layout:x="8" layout:y="235" layout:bordermode="outside">
         <tkinter.Button name="button_eps_calc_exp" attr:command="set_eps_exp" attr:text="Излучательная способность&#10;образца" layout:width="254" layout:height="80" layout:x="391" layout:y="45" layout:bordermode="outside"/>
@@ -325,7 +330,7 @@
         <tkinter.Checkbutton name="checkbutton_ch09_calc_exp" attr:text="9" attr:variable="temp_ch09" layout:width="50" layout:height="25" layout:x="268" layout:y="25" layout:bordermode="outside"/>
         <tkinter.Checkbutton name="checkbutton_ch10_calc_exp" attr:text="10" attr:variable="temp_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
-      <tkinter.Button name="button_plot_exp" attr:command="show_temperatures" attr:text="График" layout:width="250" layout:height="35" layout:x="12" layout:y="515" layout:bordermode="outside"/>
+      <tkinter.Button name="button_plot_exp" attr:command="plot_exp" attr:text="График" layout:width="250" layout:height="35" layout:x="12" layout:y="515" layout:bordermode="outside"/>
       <tkinter.Checkbutton name="checkbutton_3D_mode_calc_exp" attr:text="3D-режим" attr:variable="mode_3D" layout:width="99" layout:height="25" layout:x="264" layout:y="521" layout:bordermode="outside"/>
       <tkinter.Button name="button_export_to_file_calc_exp" attr:command="export_temperatures" attr:text="Экспорт в файл" layout:width="250" layout:height="35" layout:x="400" layout:y="515" layout:bordermode="outside"/>
     </tkinter.Frame>

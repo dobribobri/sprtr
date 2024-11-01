@@ -181,16 +181,88 @@ def clear_all(event=None, stage=Stages.Measurement):
 
 
 # Визуализация
-def show(event=None, stage=Stages.Measurement):
+# noinspection PyUnresolvedReferences
+def plt_on_button_press(event):
+    global area
+    global t_start
+    if area is not None:
+        area.remove()
+        area = None
+    match event.button:
+        case 1:
+            t_start = event.xdata
+        case 3:
+            t_start = None
+
+
+# noinspection PyUnresolvedReferences,PyTypeChecker
+def plt_on_button_release(event):
+    global figure, axes, area
+    global t_start, t_stop
+
+    match event.button:
+        case 1:
+            t_stop = event.xdata
+            y_min, y_max = axes.get_ylim()
+            area = axes.fill_between(x=np.linspace(t_start, t_stop, 10),
+                                     y1=[y_max] * 10, y2=[y_min] * 10,
+                                     color='blue', alpha=0.3)
+            axes.set_ylim(y_min, y_max)
+        case 3:
+            t_stop = None
+
+    figure.canvas.draw()
+    figure.canvas.flush_events()
+
+
+def show(event=None, stage=Stages.Measurement):  # показать исходные данные
+    global root
+    global figure, axes
+    update_session()
+
+    fig, ax = plt.subplots()
+
+    figure, axes = fig, ax
+
+    if root.set_time_interval.get():
+        fig.canvas.mpl_connect('button_press_event', plt_on_button_press)
+        fig.canvas.mpl_connect('button_release_event', plt_on_button_release)
+
+    for channel in session.channels_ready:
+        ax.plot(channel.time, channel.data,
+                label='Канал #{}'.format(channel.number))
+
+    ax.set_xlabel('Время')
+    ax.set_ylabel('Сигнал')
+
+    ax.legend(loc='best', frameon=False)
+
+    ax.grid(ls=':', color='gray')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot(event=None, stage=Stages.Measurement):  # показать результат обработки
+
     update_session()
     fig, ax = plt.subplots()
     for j, channel in enumerate(session.channels_valid):
-        ax.plot(channel.time_synced, channel.data,
+        ax.plot(channel.time_synced, channel.data_calibrated,
                 label='Канал #{}'.format(channel.number))
     ax.set_xlabel('Время')
     ax.set_ylabel('Сигнал')
-    ax.legend(loc='best', frameon=False)
+    ax.legend(loc="upper right", frameon=False)
     ax.grid(ls=':', color='gray')
+
+    global result
+    if result is not None:
+        time, T = result
+
+        ax = plt.twinx(ax)
+        ax.plot(time, T, color='blue', lw=2, label='Температура')
+        ax.legend(loc="center left", frameon=False)
+
     plt.tight_layout()
     plt.show()
 
@@ -220,11 +292,16 @@ def set_eps_exp(event=None):
 
 
 def calculate_temperatures(event=None):
-    pass
+    global session
+    update_session()
 
+    global t_start, t_stop
+    global result
 
-def show_temperatures(event=None):
-    pass
+    try:
+        result = session.get_temperature(t_start=t_start, t_stop=t_stop, parallel=True)
+    except Exception as e:
+        messagebox.showerror('Ошибка расчета температуры', str(e))
 
 
 def export_temperatures(event=None):
@@ -413,6 +490,10 @@ if __name__ == "__main__":
     session: Session = Session.load('session.json')
     session_filepath = None
 
+    figure, axes, area = None, None, None
+    t_start, t_stop = None, None  # временной интервал
+    result = None
+
     root.notebook_main.select(0)
 
     # Checkbuttons
@@ -488,6 +569,9 @@ if __name__ == "__main__":
 
     show_sync, show_cal, show_exp = partial(show, stage=Stages.TimeSynchro), partial(show, stage=Stages.Calibration), \
         partial(show, stage=Stages.Measurement)
+
+    plot_sync, plot_cal, plot_exp = partial(plot, stage=Stages.TimeSynchro), partial(plot, stage=Stages.Calibration), \
+        partial(plot, stage=Stages.Measurement)
 
     filter_convolve, filter_fft, filter_savgol, filter_rect, filter_lowess, filter_gauss, filter_spline = \
         partial(apply_filter, name='convolve'), partial(apply_filter, name='fft'), partial(apply_filter, name='savgol'), \
