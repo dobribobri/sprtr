@@ -282,7 +282,12 @@ def set_eps_cal(event=None):
 
 
 def apply_cal(event=None):
-    pass
+    global session
+    if root.calibration_type.get():  # Относительная калибровка
+        session.relative_calibration()
+    else:
+        session.absolute_calibration()
+    update_interface()
 
 
 # Вкладка "Эксперимент"
