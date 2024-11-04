@@ -1,6 +1,7 @@
+from typing import Union, Tuple
 from functools import partial
 from formation import AppBuilder
-from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED, messagebox
+from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED, messagebox, Label
 import core.initials as initials
 from core.session import Session, Channel, Stages
 import re
@@ -67,21 +68,12 @@ def set_gain(event=None, T=2500):
 
 
 def apply_filter(event=None, name='fft'):
-    match name:
-        case 'convolve':
-            pass
-        case 'fft':
-            pass
-        case 'savgol':
-            pass
-        case 'rect':
-            pass
-        case 'lowess':
-            pass
-        case 'gauss':
-            pass
-        case 'spline':
-            pass
+    global session
+    global t_start, t_stop
+
+    session.apply_filter(filter_name=name, t_start=t_start, t_stop=t_stop)
+
+    plot()
 
 
 def filter_parameters(event=None):
@@ -90,7 +82,8 @@ def filter_parameters(event=None):
 
 
 def filter_clear(event=None):
-    pass
+    global session
+    session.remove_filters()
 
 
 # Работа с фалами
@@ -235,7 +228,7 @@ def show(event=None, stage=Stages.Measurement):  # показать исходн
     ax.set_xlabel('Время')
     ax.set_ylabel('Сигнал')
 
-    ax.legend(loc='best', frameon=False)
+    ax.legend(loc='best', frameon=True)
 
     ax.grid(ls=':', color='gray')
 
@@ -261,10 +254,33 @@ def plot(event=None, stage=Stages.Measurement):  # показать резуль
 
         ax = plt.twinx(ax)
         ax.plot(time, T, color='blue', lw=2, label='Температура')
-        ax.legend(loc="center left", frameon=False)
+        ax.legend(loc="center left", frameon=True)
 
     plt.tight_layout()
     plt.show()
+
+    if root.mode_3D.get() and result is not None:
+        pass
+
+
+# Излучательная способность
+# class SetEpsDialog:
+#     def __init__(self, parent, db: EpsDatabase):
+#         top = self.top = tk.Toplevel(parent)
+#         top.title('Излучательная способность')
+#         label = Label(top, text='Выберите существующий материал')
+#         label.grid(row=0, column=0, padx=10, pady=8)
+#         self._existed_sample = StringVar(top)
+#         self._options = ['----------'] + ['{} ({})'.format(sample.caption, sample.id) for user in self.db.samples]
+#         optionMenu = tk.OptionMenu(top, self._existed_sample, *self._options)
+#         label = tk.Label(top, text='или введите вручную')
+#         label.grid(row=2, column=0, padx=10, pady=8)
+#         self._new_sample = StringVar(top)
+#
+#
+#
+#         submitButton = tk.Button(top, text='OK', command=self.send)
+#         submitButton.grid(row=4, column=0, padx=10, pady=8)
 
 
 # Вкладка "Синхронизация"
@@ -490,14 +506,14 @@ if __name__ == "__main__":
     root = AppBuilder(path="window.xml")
 
     # Сессия
-    # channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
+    channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
     # session: Session = Session(channels=channels_initial)
     session: Session = Session.load('session.json')
     session_filepath = None
 
     figure, axes, area = None, None, None
     t_start, t_stop = None, None  # временной интервал
-    result = None
+    result: Union[Tuple[np.ndarray, np.ndarray], None] = None
 
     root.notebook_main.select(0)
 
@@ -578,9 +594,9 @@ if __name__ == "__main__":
     plot_sync, plot_cal, plot_exp = partial(plot, stage=Stages.TimeSynchro), partial(plot, stage=Stages.Calibration), \
         partial(plot, stage=Stages.Measurement)
 
-    filter_convolve, filter_fft, filter_savgol, filter_rect, filter_lowess, filter_gauss, filter_spline = \
+    filter_convolve, filter_fft, filter_savgol, filter_uniform, filter_lowess, filter_gauss, filter_spline = \
         partial(apply_filter, name='convolve'), partial(apply_filter, name='fft'), partial(apply_filter, name='savgol'), \
-        partial(apply_filter, name='rect'), partial(apply_filter, name='lowess'), partial(apply_filter, name='gauss'), \
+        partial(apply_filter, name='uniform'), partial(apply_filter, name='lowess'), partial(apply_filter, name='gaussian'), \
         partial(apply_filter, name='spline')
 
     root.connect_callbacks(globals())

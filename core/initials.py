@@ -16,6 +16,16 @@ configuration = [
 # # предполагаемое количество каналов при чтении XML-файлов
 # xml_n_channels = 4
 
+filter_parameters = {
+            'convolve': {'length': 3},
+            'fft': {'divider': 5},
+            'savgol': {'length': 11, 'polyorder': 3},
+            'uniform': {'length': 5},
+            'lowess': {'fraction': 0.35},
+            'gaussian': {'sigma': 5},
+            'spline': {'smoothing': 0.01},
+        }
+
 # эталонные уровни сигнала с АЦП при измерении АЧТ с заданной температурой
 bb_adc_levels = {
       2.15: {

@@ -7,7 +7,11 @@ from multiprocessing import Pool
 import core.initials as initials
 from core.planck import Body
 import core.tekwfm as tekwfm
-# import xml.etree.ElementTree as et
+from scipy.signal import savgol_filter
+import scipy.fftpack as fft
+from scipy.ndimage import uniform_filter1d, gaussian_filter
+import statsmodels.api as sm
+from scipy import interpolate
 
 
 class Stages(Enum):
@@ -21,8 +25,13 @@ class Series:
         self.time: np.ndarray = None   # отсчеты времени
         self.data: np.ndarray = None   # значения
 
+        self.time_backup: np.ndarray = None
+        self.data_backup: np.ndarray = None
+
         self.mask: bool = True         # применять обработку
         self.n_interp: Union[int, None] = 1024      # число точек интерполяции при загрузке из файла
+
+        self.filtered = False
 
     @staticmethod
     def interpolate(time: np.asarray, data: np.asarray, n_interp: int = None):
@@ -31,6 +40,14 @@ class Series:
         new_time = np.linspace(time[0], time[-1], n_interp)
         data = np.interp(new_time, time, data)
         return new_time, data
+
+    def save_backup(self):
+        self.time_backup = self.time
+        self.data_backup = self.data
+
+    def load_backup(self):
+        self.time = self.time_backup
+        self.data = self.data_backup
 
 
 # noinspection PyTypeChecker
@@ -60,6 +77,15 @@ class Channel:
         return self.Series[self.current_stage.value]
 
     @property
+    def filtered(self) -> bool:
+        return self.Series[self.current_stage.value].filtered
+
+    @filtered.setter
+    def filtered(self, _val: bool):
+        print("Channel #{} :: @filtered.setter".format(self.number))
+        self.Series[self.current_stage.value].filtered = _val
+
+    @property
     def data(self) -> np.ndarray:
         return self.series.data
 
@@ -69,6 +95,15 @@ class Channel:
         self.Series[self.current_stage.value].data = _data
 
     @property
+    def data_backup(self) -> np.ndarray:
+        return self.series.data_backup
+
+    @data_backup.setter
+    def data_backup(self, _data: np.ndarray):
+        print("Channel #{} :: @data_backup.setter".format(self.number))
+        self.Series[self.current_stage.value].data_backup = _data
+
+    @property
     def time(self) -> np.ndarray:
         return self.series.time
 
@@ -76,6 +111,15 @@ class Channel:
     def time(self, _time: np.ndarray):
         print("Channel #{} :: @time.setter".format(self.number))
         self.Series[self.current_stage.value].time = _time
+
+    @property
+    def time_backup(self) -> np.ndarray:
+        return self.series.time_backup
+
+    @time_backup.setter
+    def time_backup(self, _time: np.ndarray):
+        print("Channel #{} :: @time_backup.setter".format(self.number))
+        self.Series[self.current_stage.value].time_backup = _time
 
     @property
     def data_gained(self) -> np.ndarray:
@@ -174,6 +218,9 @@ class Session:
 
         # Настройка коэффициента усиления
         self.T_gain_cal = 2500                        # температура эталона
+
+        # Фильтрация
+        self.filter_params = initials.filter_parameters
 
         # Калибровка
         # Абсолютная калибровка
@@ -446,6 +493,77 @@ class Session:
             t1, _ = self.channels[i].find_peak()
             self.channels[i].timedelta = t1 - t0
 
+    def get_bounds(self, t_start: float = None, t_stop: float = None, mode='valid'):
+        print("Session :: get_bounds()")
+        indexes = []
+        if mode == 'valid':
+            indexes = self.valid_indexes
+        elif mode == 'ready':
+            indexes = self.ready_indexes
+
+        bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
+                             for i in indexes])
+        left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
+
+        if t_start is None:
+            t_start = left
+        if t_stop is None:
+            t_stop = right
+        return t_start, t_stop
+
+    def apply_filter(self, filter_name: str, t_start: float = None, t_stop: float = None):
+        t_start, t_stop = self.get_bounds(t_start, t_stop, mode='ready')
+
+        for i in self.ready_indexes:
+            if not self.channels[i].filtered:
+                self.channels[i].time_backup = self.channels[i].time
+                self.channels[i].data_backup = self.channels[i].data
+
+            cond = (t_start <= self.channels[i].time) & (self.channels[i].time <= t_stop)
+            time = self.channels[i].time[cond]
+            data = self.channels[i].data[cond]
+
+            match filter_name:
+                case 'convolve':
+                    box_pts = self.filter_params['convolve']['length']
+                    box = np.ones(box_pts) / box_pts
+                    data = np.convolve(data, box, mode='same')
+                case 'fft':
+                    w = fft.rfft(data)
+                    spectrum = w**2
+                    cutoff_idx = spectrum < (spectrum.max() / self.filter_params['fft']['divider'])
+                    w2 = w.copy()
+                    w2[cutoff_idx] = 0
+                    data = fft.irfft(w2)
+                case 'savgol':
+                    data = savgol_filter(data,
+                                         window_length=self.filter_params['savgol']['length'],
+                                         polyorder=self.filter_params['savgol']['polyorder'])
+                case 'uniform':
+                    data = uniform_filter1d(data, size=self.filter_params['uniform']['length'])
+                case 'lowess':
+                    frac = self.filter_params['lowess']['fraction']
+                    if frac > 1.:
+                        frac = 1.
+                    data = sm.nonparametric.lowess(data, time, frac=frac, is_sorted=True, return_sorted=False)
+                case 'gaussian':
+                    sigma = self.filter_params['gaussian']['sigma']
+                    data = gaussian_filter(data, sigma=sigma)
+                case 'spline':
+                    spline = interpolate.UnivariateSpline(time, data)
+                    spline.set_smoothing_factor(self.filter_params['spline']['smoothing'])
+                    data = spline(time)
+            self.channels[i].time = time
+            self.channels[i].data = data
+            self.channels[i].filtered = True
+
+    def remove_filters(self):
+        for i in self.ready_indexes:
+            if self.channels[i].filtered:
+                self.channels[i].time = self.channels[i].time_backup
+                self.channels[i].data = self.channels[i].data_backup
+                self.channels[i].filtered = False
+
     def process(self, i):
         return i, self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=self.__data[i])
 
@@ -454,14 +572,7 @@ class Session:
         Расчет температуры по Планку
         """
         print("Session :: get_temperature()")
-        bounds = np.asarray([(self.channels[i].time_synced[0], self.channels[i].time_synced[-1])
-                             for i in self.valid_indexes])
-        left, right = np.max(bounds[:, 0]), np.min(bounds[:, 1])
-
-        if t_start is None:
-            t_start = left
-        if t_stop is None:
-            t_stop = right
+        t_start, t_stop = self.get_bounds(t_start, t_stop, mode='valid')
 
         data = []
         lengths = []
