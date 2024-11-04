@@ -636,8 +636,8 @@ if __name__ == "__main__":
 
     # Сессия
     channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
-    # session: Session = Session(channels=channels_initial)
-    session: Session = Session.load('session.json')
+    session: Session = Session(channels=channels_initial)
+    # session: Session = Session.load('session.json')
     session_filepath = None
 
     figure, axes, area = None, None, None
