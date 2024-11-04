@@ -15,6 +15,7 @@ from core.session import Session, Channel, Stages
 
 import re
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
 
@@ -317,6 +318,7 @@ def show(event=None, stage=Stages.Measurement):  # показать исходн
 
 
 def plot(event=None, stage=Stages.Measurement):  # показать результат обработки
+    global result
 
     update_session()
     fig, ax = plt.subplots()
@@ -325,42 +327,22 @@ def plot(event=None, stage=Stages.Measurement):  # показать резуль
                 label='Канал #{}'.format(channel.number))
     ax.set_xlabel('Время')
     ax.set_ylabel('Сигнал')
-    ax.legend(loc="upper right", frameon=False)
+    ax.legend(loc="upper right", frameon=True)
     ax.grid(ls=':', color='gray')
 
-    global result
-    if result is not None:
-        time, T = result
+    if stage.value == Stages.Measurement.value:
+        if result is not None:
+            time, T = result
 
-        ax = plt.twinx(ax)
-        ax.plot(time, T, color='blue', lw=2, label='Температура')
-        ax.legend(loc="center left", frameon=True)
+            ax = plt.twinx(ax)
+            ax.plot(time, T, color='blue', lw=2, label='Температура')
+            ax.legend(loc="center left", frameon=True)
 
     plt.tight_layout()
     plt.show()
 
-    if root.mode_3D.get() and result is not None:
+    if root.mode_3D.get() and stage.value == Stages.Measurement.value and result is not None:
         pass
-
-
-# Излучательная способность
-# class SetEpsDialog:
-#     def __init__(self, parent, db: EpsDatabase):
-#         top = self.top = tk.Toplevel(parent)
-#         top.title('Излучательная способность')
-#         label = Label(top, text='Выберите существующий материал')
-#         label.grid(row=0, column=0, padx=10, pady=8)
-#         self._existed_sample = StringVar(top)
-#         self._options = ['----------'] + ['{} ({})'.format(sample.caption, sample.id) for user in self.db.samples]
-#         optionMenu = tk.OptionMenu(top, self._existed_sample, *self._options)
-#         label = tk.Label(top, text='или введите вручную')
-#         label.grid(row=2, column=0, padx=10, pady=8)
-#         self._new_sample = StringVar(top)
-#
-#
-#
-#         submitButton = tk.Button(top, text='OK', command=self.send)
-#         submitButton.grid(row=4, column=0, padx=10, pady=8)
 
 
 # Вкладка "Синхронизация"
@@ -372,9 +354,25 @@ def apply_sync(event=None):
 
 
 # Вкладка "Калибровка"
-def set_eps_cal(event=None):
-    child_w = Toplevel(root._app)
-    child_w.title("Излучательная способность эталона")
+def set_eps_cal(event=None):  # Излучательная способность эталона
+    global session, root
+
+    eps = 1
+    filepath = filedialog.askopenfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
+
+    if filepath:
+        # noinspection PyBroadException
+        try:
+            df = pd.read_excel(filepath, index_col=None, header=None)
+            eps = dict(df.to_numpy().tolist())
+        except Exception as e:
+            messagebox.showerror(title='Ошибка', message=str(e))
+            eps = 1
+
+    if root.calibration_type.get():  # Относительная калибровка
+        session.eps_rel_cal = eps
+    else:  # Абсолютная калибровка
+        session.eps_abs_cal = eps
 
 
 def apply_cal(event=None):
@@ -388,8 +386,21 @@ def apply_cal(event=None):
 
 # Вкладка "Эксперимент"
 def set_eps_exp(event=None):
-    child_w = Toplevel(root._app)
-    child_w.title("Излучательная способность образца")
+    global session, root
+
+    eps = 1
+    filepath = filedialog.askopenfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
+
+    if filepath:
+        # noinspection PyBroadException
+        try:
+            df = pd.read_excel(filepath, index_col=None, header=None)
+            eps = dict(df.to_numpy().tolist())
+        except Exception as e:
+            messagebox.showerror(title='Ошибка', message=str(e))
+            eps = 1
+
+    session.eps_sample = eps
 
 
 def calculate_temperatures(event=None):
