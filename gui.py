@@ -1,9 +1,18 @@
 from typing import Union, Tuple
 from functools import partial
+
 from formation import AppBuilder
-from tkinter import Toplevel, filedialog, TclError, NORMAL, DISABLED, messagebox, Label
+
+from tkinter import Variable
+from tkinter import Toplevel
+from tkinter import filedialog, messagebox
+from tkinter import Label, Spinbox, Button
+from tkinter import NORMAL, DISABLED
+from tkinter import TclError
+
 import core.initials as initials
 from core.session import Session, Channel, Stages
+
 import re
 import numpy as np
 from matplotlib import pyplot as plt
@@ -76,9 +85,80 @@ def apply_filter(event=None, name='fft'):
     plot()
 
 
+class FilterParametersDialog:
+    def __init__(self, parent):
+
+        self.filter_parameters = initials.filter_parameters
+
+        top = self.top = Toplevel(parent)
+        top.title('Параметры фильтров')
+        top.geometry('{:.0f}x{:.0f}'.format(720, 400))
+
+        kwargs = {'columnspan': 2, 'padx': 10, 'pady': 8}
+        Label(top, text='Фильтр', font='-weight bold', justify='left', width=20).grid(row=0, column=0, **kwargs)
+        Label(top, text='Параметр', font='-weight bold', justify='left', width=20).grid(row=0, column=2, **kwargs)
+        Label(top, text='Значение', font='-weight bold', justify='left', width=20).grid(row=0, column=4, **kwargs)
+
+        Label(top, text='Сверточный', justify='left', width=20).grid(row=2, column=0, **kwargs)
+        Label(top, text='Число точек', justify='left', width=20).grid(row=2, column=2, **kwargs)
+        self.convolve_length = Variable(top, value=3)
+        Spinbox(top, from_=3, to=20, increment=1, textvariable=self.convolve_length, width=10).grid(row=2, column=4, **kwargs)
+
+        Label(top, text='БПФ-сглаживание', justify='left', width=20).grid(row=3, column=0, **kwargs)
+        Label(top, text='Делитель', justify='left', width=20).grid(row=3, column=2, **kwargs)
+        self.fft_divider = Variable(top, value=5)
+        Spinbox(top, from_=3, to=20, increment=1, textvariable=self.fft_divider, width=10).grid(row=3, column=4, **kwargs)
+
+        Label(top, text='Savgol', justify='left', width=20).grid(row=4, column=0, **kwargs)
+        Label(top, text='Длина окна', justify='left', width=20).grid(row=4, column=2, **kwargs)
+        self.savgol_length = Variable(top, value=11)
+        Spinbox(top, from_=5, to=20, increment=1, textvariable=self.savgol_length, width=10).grid(row=4, column=4, **kwargs)
+        Label(top, text='Порядок полинома', justify='left', width=20).grid(row=5, column=2, **kwargs)
+        self.savgol_polyorder = Variable(top, value=3)
+        Spinbox(top, from_=3, to=9, increment=1, textvariable=self.savgol_polyorder, width=10).grid(row=5, column=4, **kwargs)
+        
+        Label(top, text='Однородный', justify='left', width=20).grid(row=6, column=0, **kwargs)
+        Label(top, text='Длина', justify='left', width=20).grid(row=6, column=2, **kwargs)
+        self.uniform_length = Variable(top, value=5)
+        Spinbox(top, from_=3, to=20, increment=1, textvariable=self.uniform_length, width=10).grid(row=6, column=4, **kwargs)
+        
+        Label(top, text='LOWESS', justify='left', width=20).grid(row=7, column=0, **kwargs)
+        Label(top, text='Отношение', justify='left', width=20).grid(row=7, column=2, **kwargs)
+        self.lowess_fraction = Variable(top, value=0.35)
+        Spinbox(top, from_=0.01, to=20, increment=0.01, textvariable=self.lowess_fraction, width=10).grid(row=7, column=4, **kwargs)
+
+        Label(top, text='Гауссиан', justify='left', width=20).grid(row=8, column=0, **kwargs)
+        Label(top, text='Сигма', justify='left', width=20).grid(row=8, column=2, **kwargs)
+        self.gaussian_sigma = Variable(top, value=5)
+        Spinbox(top, from_=3, to=20, increment=1, textvariable=self.gaussian_sigma, width=10).grid(row=8, column=4, **kwargs)
+
+        Label(top, text='Сплайны', justify='left', width=20).grid(row=9, column=0, **kwargs)
+        Label(top, text='Сглаживание', justify='left', width=20).grid(row=9, column=2, **kwargs)
+        self.spline_smoothing = Variable(top, value=0.01)
+        Spinbox(top, from_=0.01, to=20, increment=0.01, textvariable=self.spline_smoothing, width=10).grid(row=9, column=4, **kwargs)
+
+        Button(top, text="Применить", command=self.set, width=40).grid(row=11, column=0, columnspan=6)
+
+    def set(self):
+        # filter_parameters = initials.filter_parameters
+        parameters = {
+            'convolve': {'length': self.convolve_length.get()},
+            'fft': {'divider': self.fft_divider.get()},
+            'savgol': {'length': self.savgol_length.get(), 'polyorder': self.savgol_polyorder.get()},
+            'uniform': {'length': self.uniform_length.get()},
+            'lowess': {'fraction': self.lowess_fraction.get()},
+            'gaussian': {'sigma': self.gaussian_sigma.get()},
+            'spline': {'smoothing': self.spline_smoothing.get()},
+        }
+        self.filter_parameters = parameters
+        self.top.destroy()
+
+
 def filter_parameters(event=None):
-    child_w = Toplevel(root._app)
-    child_w.title("Параметры фильтров")
+    global root, session
+    inputDialog = FilterParametersDialog(root._app)
+    root._app.wait_window(inputDialog.top)
+    session.filter_params = inputDialog.filter_parameters
 
 
 def filter_clear(event=None):
