@@ -331,7 +331,7 @@
         <tkinter.Checkbutton name="checkbutton_ch10_calc_exp" attr:text="10" attr:variable="temp_ch10" layout:width="50" layout:height="25" layout:x="272" layout:y="58" layout:bordermode="outside"/>
       </tkinter.LabelFrame>
       <tkinter.Button name="button_plot_exp" attr:command="plot_exp" attr:text="График" layout:width="250" layout:height="35" layout:x="12" layout:y="515" layout:bordermode="outside"/>
-      <tkinter.Checkbutton name="checkbutton_3D_mode_calc_exp" attr:text="3D-режим" attr:variable="mode_3D" layout:width="99" layout:height="25" layout:x="264" layout:y="521" layout:bordermode="outside"/>
+      <tkinter.Checkbutton name="checkbutton_3D_mode_calc_exp" attr:text="3D спектры" attr:variable="mode_3D" layout:width="106" layout:height="25" layout:x="264" layout:y="521" layout:bordermode="outside"/>
       <tkinter.Button name="button_export_to_file_calc_exp" attr:command="export_temperatures" attr:text="Экспорт в файл" layout:width="250" layout:height="35" layout:x="400" layout:y="515" layout:bordermode="outside"/>
     </tkinter.Frame>
   </tkinter.ttk.Notebook>

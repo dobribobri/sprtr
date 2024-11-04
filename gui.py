@@ -16,7 +16,9 @@ from core.session import Session, Channel, Stages
 import re
 import numpy as np
 import pandas as pd
+
 from matplotlib import pyplot as plt
+from matplotlib import cm
 
 
 # MENU Файл
@@ -336,13 +338,33 @@ def plot(event=None, stage=Stages.Measurement):  # показать резуль
 
             ax = plt.twinx(ax)
             ax.plot(time, T, color='blue', lw=2, label='Температура')
-            ax.legend(loc="center left", frameon=True)
+            ax.set_ylabel('Температура, К')
+            ax.legend(loc="upper center", frameon=True)
 
     plt.tight_layout()
-    plt.show()
+    plt.draw()
 
     if root.mode_3D.get() and stage.value == Stages.Measurement.value and result is not None:
-        pass
+        time, T = result
+
+        spectra = []
+        for temperature in T:
+            spectrum = session.sample.intensity(wavelength=session.wavelengths_valid, T=temperature)
+            spectra.append(spectrum)
+
+        X = np.asarray([time] * len(session.valid_indexes))
+        Y = np.moveaxis(np.asarray([session.wavelengths_valid] * len(time)), 0, 1)
+        Z = np.asarray(spectra).T
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        # ax.plot_wireframe(X, Y, Z, rstride=1, cstride=10)
+        ax.plot_surface(X, Y, Z, cmap='plasma', linewidth=0, antialiased=False)
+        ax.set_xlabel(r'Время')
+        ax.set_ylabel(r'Длина волны (мкм)')
+        ax.set_zlabel(r'Интенсивность (Вт/см$^2$/мкм)')
+
+    plt.show()
 
 
 # Вкладка "Синхронизация"
@@ -417,7 +439,23 @@ def calculate_temperatures(event=None):
 
 
 def export_temperatures(event=None):
-    pass
+    global result
+
+    if result is not None:
+        time, T = result
+
+        data = []
+        for j, (timestamp, temperature) in enumerate(zip(time, T)):
+            data.append([j + 1, timestamp, temperature])
+        data = np.asarray(data)
+
+        data = pd.DataFrame(data=data[:, 1:], index=data[:, 0],
+                            columns=["время", 'температура, K'])
+
+        filepath = filedialog.asksaveasfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
+
+        if filepath:
+            data.to_excel(filepath)
 
 
 # Основное
