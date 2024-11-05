@@ -478,7 +478,8 @@ def calculate_temperatures(event=None):
     global result
 
     try:
-        result = session.get_temperature(t_start=t_start, t_stop=t_stop, parallel=True)
+        parallel = root.parallelize.get()
+        result = session.get_temperature(t_start=t_start, t_stop=t_stop, parallel=parallel)
     except Exception as e:
         messagebox.showerror('Ошибка расчета температуры', str(e))
 
