@@ -96,6 +96,7 @@ class FilterParametersDialog:
         top = self.top = Toplevel(parent)
         top.title('Параметры фильтров')
         top.geometry('{:.0f}x{:.0f}'.format(720, 400))
+        top.resizable(False, False)
 
         kwargs = {'columnspan': 2, 'padx': 10, 'pady': 8}
         Label(top, text='Фильтр', font='-weight bold', justify='left', width=20).grid(row=0, column=0, **kwargs)
