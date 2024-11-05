@@ -605,7 +605,7 @@ class Session:
             T = []
             for i, spectrum in enumerate(self.__data):
                 T.append(self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=spectrum))
-                print('\rВыполнено\t{:.2f} %'.format((i + 1) / len(self.__data)), flush=True, end='          ')
+                print('\rВыполнено\t{:.2f} %'.format((i + 1) / len(self.__data) * 100.), flush=True, end='          ')
             print('\n')
             return time, np.asarray(T)
 
