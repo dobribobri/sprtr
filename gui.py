@@ -26,6 +26,8 @@ from matplotlib import cm
 def new_session(event=None):
     global session, session_filepath
 
+    print('Globals :: new_session()')
+
     session = Session(channels=channels_initial)
     session_filepath = None
 
@@ -34,6 +36,8 @@ def new_session(event=None):
 
 def open_session(event=None):
     global session, session_filepath
+
+    print('Globals :: open_session()')
 
     filepath = filedialog.askopenfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
 
@@ -44,6 +48,7 @@ def open_session(event=None):
 
 
 def save_session(event=None):
+    print('Globals :: save_session()')
     if session_filepath:
         update_session()
         session.save(session_filepath)
@@ -52,6 +57,7 @@ def save_session(event=None):
 
 
 def save_as_session(event=None):
+    print('Globals :: save_as_session()')
     global session_filepath
     update_session()
     session_filepath = filedialog.asksaveasfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
@@ -59,6 +65,7 @@ def save_as_session(event=None):
 
 
 def on_close(event=None):
+    print('Globals :: on_close()')
     # session.save('session.json')
     print("До свидания!")
     exit(0)
@@ -67,6 +74,7 @@ def on_close(event=None):
 # MENU Инструменты
 # noinspection PyBroadException
 def set_gain(event=None, T=2500):
+    print('Globals :: set_gain() | T = {}'.format(T))
     global session
     session.T_gain_cal = T
     try:
@@ -84,6 +92,8 @@ def apply_filter(event=None, name='fft'):
     global session
     global t_start, t_stop
 
+    print('Globals :: apply_filter() | name = {}'.format(name))
+
     session.apply_filter(filter_name=name, t_start=t_start, t_stop=t_stop)
 
     plot()
@@ -91,6 +101,7 @@ def apply_filter(event=None, name='fft'):
 
 class FilterParametersDialog:
     def __init__(self, parent):
+        print('FilterParametersDialog :: __init__()')
 
         self.filter_parameters = initials.filter_parameters
 
@@ -145,6 +156,7 @@ class FilterParametersDialog:
         Button(top, text="Применить", command=self.set, width=40).grid(row=11, column=0, columnspan=6)
 
     def set(self):
+        print('FilterParametersDialog :: set()')
         # filter_parameters = initials.filter_parameters
         parameters = {
             'convolve': {'length': self.convolve_length.get()},
@@ -161,6 +173,9 @@ class FilterParametersDialog:
 
 def filter_parameters(event=None):
     global root, session
+
+    print('Globals :: filter_parameters()')
+
     inputDialog = FilterParametersDialog(root._app)
     root._app.wait_window(inputDialog.top)
     session.filter_params = inputDialog.filter_parameters
@@ -168,6 +183,9 @@ def filter_parameters(event=None):
 
 def filter_clear(event=None):
     global session
+
+    print('Globals :: filter_parameters()')
+
     session.remove_filters()
 
 
@@ -254,6 +272,8 @@ def load_all(event=None, stage=Stages.Measurement):
 def clear_all(event=None, stage=Stages.Measurement):
     global session, root
 
+    print('Globals :: clear_all()')
+
     session.erase()
     update_interface()
 
@@ -263,6 +283,9 @@ def clear_all(event=None, stage=Stages.Measurement):
 def plt_on_button_press(event):
     global area
     global t_start
+
+    print('Globals :: plt_on_button_press()')
+
     if area is not None:
         area.remove()
         area = None
@@ -277,6 +300,8 @@ def plt_on_button_press(event):
 def plt_on_button_release(event):
     global figure, axes, area
     global t_start, t_stop
+
+    print('Globals :: plt_on_button_release()')
 
     match event.button:
         case 1:
@@ -296,6 +321,9 @@ def plt_on_button_release(event):
 def show(event=None, stage=Stages.Measurement):  # показать исходные данные
     global root
     global figure, axes
+
+    print('Globals :: show() | stage = {}'.format(stage))
+
     update_session()
 
     fig, ax = plt.subplots()
@@ -323,6 +351,8 @@ def show(event=None, stage=Stages.Measurement):  # показать исходн
 
 def plot(event=None, stage=Stages.Measurement):  # показать результат обработки
     global result
+
+    print('Globals :: plot() | stage = {}'.format(stage))
 
     update_session()
     fig, ax = plt.subplots()
@@ -372,6 +402,9 @@ def plot(event=None, stage=Stages.Measurement):  # показать резуль
 # Вкладка "Синхронизация"
 def apply_sync(event=None):
     global session, root
+
+    print('Globals :: apply_sync()')
+
     update_session()
     session.set_timedelta()
     update_interface()
@@ -380,6 +413,8 @@ def apply_sync(event=None):
 # Вкладка "Калибровка"
 def set_eps_cal(event=None):  # Излучательная способность эталона
     global session, root
+
+    print('Globals :: set_eps_cal()')
 
     eps = 1
     filepath = filedialog.askopenfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
@@ -401,6 +436,9 @@ def set_eps_cal(event=None):  # Излучательная способност�
 
 def apply_cal(event=None):
     global session
+
+    print('Globals :: apply_cal()')
+
     if root.calibration_type.get():  # Относительная калибровка
         session.relative_calibration()
     else:
@@ -411,6 +449,8 @@ def apply_cal(event=None):
 # Вкладка "Эксперимент"
 def set_eps_exp(event=None):
     global session, root
+
+    print('Globals :: set_eps_exp()')
 
     eps = 1
     filepath = filedialog.askopenfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
@@ -429,6 +469,9 @@ def set_eps_exp(event=None):
 
 def calculate_temperatures(event=None):
     global session
+
+    print('Globals :: calculate_temperatures()')
+
     update_session()
 
     global t_start, t_stop
@@ -442,6 +485,8 @@ def calculate_temperatures(event=None):
 
 def export_temperatures(event=None):
     global result
+
+    print('Globals :: export_temperatures()')
 
     if result is not None:
         time, T = result
@@ -463,6 +508,8 @@ def export_temperatures(event=None):
 # Основное
 def update_session(*args):
     global session
+
+    print('Globals :: update_session()')
 
     # root._app.update()
     # root._app.update_idletasks()
@@ -518,6 +565,8 @@ def update_session(*args):
 
 def update_interface(*args):
     global root
+
+    print('Globals :: update_interface()')
 
     for stage in Stages:
         n_interp = session.first_channel.Series[stage.value].n_interp
@@ -590,6 +639,8 @@ def update_interface(*args):
 def update_usage(*args):
     global session, root
 
+    print('Globals :: update_usage()')
+
     for j in range(10):
         if usage[j].get():
             lambdas_spinboxes[j].configure(state=NORMAL)
@@ -634,6 +685,8 @@ def update_usage(*args):
 
 
 if __name__ == "__main__":
+    print('Добро пожаловать!')
+
     root = AppBuilder(path="window.xml")
 
     # Сессия

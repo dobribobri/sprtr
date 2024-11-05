@@ -24,6 +24,7 @@ class Stages(Enum):
 
 class Series:
     def __init__(self):
+        print('Series :: __init__()')
         self.time: np.ndarray = None   # отсчеты времени
         self.data: np.ndarray = None   # значения
 
@@ -37,6 +38,7 @@ class Series:
 
     @staticmethod
     def interpolate(time: np.asarray, data: np.asarray, n_interp: int = None):
+        print('Series :: interpolate() | n_interp = {}'.format(n_interp))
         if n_interp is None:
             return time, data
         new_time = np.linspace(time[0], time[-1], n_interp)
@@ -44,10 +46,12 @@ class Series:
         return new_time, data
 
     def save_backup(self):
+        print('Series :: save_backup()')
         self.time_backup = self.time
         self.data_backup = self.data
 
     def load_backup(self):
+        print('Series :: load_backup()')
         self.time = self.time_backup
         self.data = self.data_backup
 
@@ -57,6 +61,7 @@ class Channel:
     def __init__(self, wavelength: float,
                  board: int = None, number: int = None,
                  used: bool = True, current_stage: Stages = Stages.Measurement):
+        print('Channel :: __init__() | wavelength = {}, board = {}, number = {}, used = {}, current_stage = {}'.format(wavelength, board, number, used, current_stage))
         self.used = used  # использовать канал?
         self.current_stage = current_stage  # текущий этап
 
@@ -216,6 +221,7 @@ class Channel:
 
 class Session:
     def __init__(self, channels: List[Channel] = None):
+        print('Session :: __init__()')
         self.channels: List[Channel] = channels  # Каналы
 
         # Настройка коэффициента усиления
@@ -514,6 +520,7 @@ class Session:
         return t_start, t_stop
 
     def apply_filter(self, filter_name: str, t_start: float = None, t_stop: float = None):
+        print("Session :: apply_filter() | filter name is {}".format(filter_name))
         t_start, t_stop = self.get_bounds(t_start, t_stop, mode='ready')
 
         for i in self.ready_indexes:
@@ -560,6 +567,7 @@ class Session:
             self.channels[i].filtered = True
 
     def remove_filters(self):
+        print("Session :: remove_filters()")
         for i in self.ready_indexes:
             if self.channels[i].filtered:
                 self.channels[i].time = self.channels[i].time_backup
@@ -593,11 +601,13 @@ class Session:
         self.__data = np.asarray(data).T
 
         if not parallel:
+            print('PARALLEL = FALSE')
             T = []
             for spectrum in self.__data:
                 T.append(self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=spectrum))
             return time, np.asarray(T)
 
+        print('PARALLEL PROCESSING')
         results = []
         n = len(self.__data)
         with Pool(processes=self.n_workers) as pool:

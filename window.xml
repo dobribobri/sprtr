@@ -132,9 +132,9 @@
   <tkinter.BooleanVar attr:name="cal_ch08" attr:value="True"/>
   <tkinter.BooleanVar attr:name="cal_ch09" attr:value="True"/>
   <tkinter.BooleanVar attr:name="cal_ch10" attr:value="True"/>
-  <tkinter.BooleanVar attr:name="tp_interp_exp" attr:value="False"/>
+  <tkinter.BooleanVar attr:name="tp_interp_exp" attr:value="True"/>
   <tkinter.IntVar attr:name="tp_n_interp_exp" attr:value="100"/>
-  <tkinter.BooleanVar attr:name="parallelize" attr:value="True"/>
+  <tkinter.BooleanVar attr:name="parallelize" attr:value="False"/>
   <tkinter.IntVar attr:name="n_workers" attr:value="8"/>
   <tkinter.BooleanVar attr:name="temp_ch01" attr:value="True"/>
   <tkinter.BooleanVar attr:name="temp_ch02" attr:value="True"/>
