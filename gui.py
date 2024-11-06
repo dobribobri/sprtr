@@ -13,10 +13,12 @@ from tkinter import TclError
 
 import core.initials as initials
 from core.session import Session, Channel, Stages
+from core.logger import Log
 
 import re
 import numpy as np
 import pandas as pd
+import openpyxl
 
 from matplotlib import pyplot as plt
 from matplotlib import cm
@@ -26,7 +28,7 @@ from matplotlib import cm
 def new_session(event=None):
     global session, session_filepath
 
-    print('Globals :: new_session()')
+    log.print('Globals :: new_session()')
 
     session = Session(channels=channels_initial)
     session_filepath = None
@@ -37,7 +39,7 @@ def new_session(event=None):
 def open_session(event=None):
     global session, session_filepath
 
-    print('Globals :: open_session()')
+    log.print('Globals :: open_session()')
 
     filepath = filedialog.askopenfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
 
@@ -48,7 +50,7 @@ def open_session(event=None):
 
 
 def save_session(event=None):
-    print('Globals :: save_session()')
+    log.print('Globals :: save_session()')
     if session_filepath:
         update_session()
         session.save(session_filepath)
@@ -57,7 +59,7 @@ def save_session(event=None):
 
 
 def save_as_session(event=None):
-    print('Globals :: save_as_session()')
+    log.print('Globals :: save_as_session()')
     global session_filepath
     update_session()
     session_filepath = filedialog.asksaveasfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
@@ -65,16 +67,16 @@ def save_as_session(event=None):
 
 
 def on_close(event=None):
-    print('Globals :: on_close()')
+    log.print('Globals :: on_close()')
     # session.save('session.json')
-    print("До свидания!")
+    log.print("До свидания!")
     exit(0)
 
 
 # MENU Инструменты
 # noinspection PyBroadException
 def set_gain(event=None, T=2500):
-    print('Globals :: set_gain() | T = {}'.format(T))
+    log.print('Globals :: set_gain() | T = {}'.format(T))
     global session
     session.T_gain_cal = T
     try:
@@ -92,7 +94,7 @@ def apply_filter(event=None, name='fft'):
     global session
     global t_start, t_stop
 
-    print('Globals :: apply_filter() | name = {}'.format(name))
+    log.print('Globals :: apply_filter() | name = {}'.format(name))
 
     session.apply_filter(filter_name=name, t_start=t_start, t_stop=t_stop)
 
@@ -101,7 +103,7 @@ def apply_filter(event=None, name='fft'):
 
 class FilterParametersDialog:
     def __init__(self, parent):
-        print('FilterParametersDialog :: __init__()')
+        log.print('FilterParametersDialog :: __init__()')
 
         self.filter_parameters = initials.filter_parameters
 
@@ -156,7 +158,7 @@ class FilterParametersDialog:
         Button(top, text="Применить", command=self.set, width=40).grid(row=11, column=0, columnspan=6)
 
     def set(self):
-        print('FilterParametersDialog :: set()')
+        log.print('FilterParametersDialog :: set()')
         # filter_parameters = initials.filter_parameters
         parameters = {
             'convolve': {'length': self.convolve_length.get()},
@@ -174,7 +176,7 @@ class FilterParametersDialog:
 def filter_parameters(event=None):
     global root, session
 
-    print('Globals :: filter_parameters()')
+    log.print('Globals :: filter_parameters()')
 
     inputDialog = FilterParametersDialog(root._app)
     root._app.wait_window(inputDialog.top)
@@ -184,7 +186,7 @@ def filter_parameters(event=None):
 def filter_clear(event=None):
     global session
 
-    print('Globals :: filter_parameters()')
+    log.print('Globals :: filter_parameters()')
 
     session.remove_filters()
 
@@ -193,7 +195,7 @@ def filter_clear(event=None):
 def load_channel(event=None, channel=0, stage=Stages.Measurement):
     global session, root
 
-    print('Globals :: load_channel() | channel {} | stage {}'.format(channel, stage))
+    log.print('Globals :: load_channel() | channel {} | stage {}'.format(channel, stage))
 
     update_session()
 
@@ -236,7 +238,7 @@ def load_channel(event=None, channel=0, stage=Stages.Measurement):
 def load_all(event=None, stage=Stages.Measurement):
     global session, root
 
-    print('Globals :: load_all()')
+    log.print('Globals :: load_all()')
 
     update_session()
 
@@ -246,6 +248,10 @@ def load_all(event=None, stage=Stages.Measurement):
                                                        ('Текстовый файл', '*.txt'), ('Файл WFM', '*.wfm')])
     if not filepaths:
         return
+
+    if len(filepaths) > 10:
+        messagebox.showwarning(title='Предупреждение', message='Вы пытаетесь загрузить больше 10 файлов')
+        filepaths = filepaths[:10]
 
     extensions = []
     try:
@@ -263,6 +269,8 @@ def load_all(event=None, stage=Stages.Measurement):
     # noinspection PyBroadException
     try:
         session.read_channels(filepaths=filepaths, format_=ext)
+    except IndexError:
+        messagebox.showwarning(title='Предупреждение', message='Вы пытаетесь загрузить больше 10 каналов')
     except Exception as e:
         messagebox.showerror(title='Ошибка чтения файла', message=str(e))
 
@@ -272,7 +280,7 @@ def load_all(event=None, stage=Stages.Measurement):
 def clear_all(event=None, stage=Stages.Measurement):
     global session, root
 
-    print('Globals :: clear_all()')
+    log.print('Globals :: clear_all()')
 
     session.erase()
     update_interface()
@@ -284,7 +292,7 @@ def plt_on_button_press(event):
     global area
     global t_start
 
-    print('Globals :: plt_on_button_press()')
+    log.print('Globals :: plt_on_button_press()')
 
     if area is not None:
         area.remove()
@@ -301,7 +309,7 @@ def plt_on_button_release(event):
     global figure, axes, area
     global t_start, t_stop
 
-    print('Globals :: plt_on_button_release()')
+    log.print('Globals :: plt_on_button_release()')
 
     match event.button:
         case 1:
@@ -322,7 +330,7 @@ def show(event=None, stage=Stages.Measurement):  # показать исходн
     global root
     global figure, axes
 
-    print('Globals :: show() | stage = {}'.format(stage))
+    log.print('Globals :: show() | stage = {}'.format(stage))
 
     update_session()
 
@@ -352,7 +360,7 @@ def show(event=None, stage=Stages.Measurement):  # показать исходн
 def plot(event=None, stage=Stages.Measurement):  # показать результат обработки
     global result
 
-    print('Globals :: plot() | stage = {}'.format(stage))
+    log.print('Globals :: plot() | stage = {}'.format(stage))
 
     update_session()
     fig, ax = plt.subplots()
@@ -403,7 +411,7 @@ def plot(event=None, stage=Stages.Measurement):  # показать резуль
 def apply_sync(event=None):
     global session, root
 
-    print('Globals :: apply_sync()')
+    log.print('Globals :: apply_sync()')
 
     update_session()
     session.set_timedelta()
@@ -414,7 +422,7 @@ def apply_sync(event=None):
 def set_eps_cal(event=None):  # Излучательная способность эталона
     global session, root
 
-    print('Globals :: set_eps_cal()')
+    log.print('Globals :: set_eps_cal()')
 
     eps = 1
     filepath = filedialog.askopenfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
@@ -422,7 +430,7 @@ def set_eps_cal(event=None):  # Излучательная способност�
     if filepath:
         # noinspection PyBroadException
         try:
-            df = pd.read_excel(filepath, index_col=None, header=None)
+            df = pd.read_excel(filepath, index_col=None, header=None, engine="openpyxl")
             eps = dict(df.to_numpy().tolist())
         except Exception as e:
             messagebox.showerror(title='Ошибка', message=str(e))
@@ -437,7 +445,7 @@ def set_eps_cal(event=None):  # Излучательная способност�
 def apply_cal(event=None):
     global session
 
-    print('Globals :: apply_cal()')
+    log.print('Globals :: apply_cal()')
 
     if root.calibration_type.get():  # Относительная калибровка
         session.relative_calibration()
@@ -450,7 +458,7 @@ def apply_cal(event=None):
 def set_eps_exp(event=None):
     global session, root
 
-    print('Globals :: set_eps_exp()')
+    log.print('Globals :: set_eps_exp()')
 
     eps = 1
     filepath = filedialog.askopenfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
@@ -458,7 +466,7 @@ def set_eps_exp(event=None):
     if filepath:
         # noinspection PyBroadException
         try:
-            df = pd.read_excel(filepath, index_col=None, header=None)
+            df = pd.read_excel(filepath, index_col=None, header=None, engine="openpyxl")
             eps = dict(df.to_numpy().tolist())
         except Exception as e:
             messagebox.showerror(title='Ошибка', message=str(e))
@@ -470,7 +478,7 @@ def set_eps_exp(event=None):
 def calculate_temperatures(event=None):
     global session
 
-    print('Globals :: calculate_temperatures()')
+    log.print('Globals :: calculate_temperatures()')
 
     update_session()
 
@@ -487,7 +495,7 @@ def calculate_temperatures(event=None):
 def export_temperatures(event=None):
     global result
 
-    print('Globals :: export_temperatures()')
+    log.print('Globals :: export_temperatures()')
 
     if result is not None:
         time, T = result
@@ -510,7 +518,7 @@ def export_temperatures(event=None):
 def update_session(*args):
     global session
 
-    print('Globals :: update_session()')
+    log.print('Globals :: update_session()')
 
     # root._app.update()
     # root._app.update_idletasks()
@@ -567,7 +575,7 @@ def update_session(*args):
 def update_interface(*args):
     global root
 
-    print('Globals :: update_interface()')
+    log.print('Globals :: update_interface()')
 
     for stage in Stages:
         n_interp = session.first_channel.Series[stage.value].n_interp
@@ -640,7 +648,7 @@ def update_interface(*args):
 def update_usage(*args):
     global session, root
 
-    print('Globals :: update_usage()')
+    log.print('Globals :: update_usage()')
 
     for j in range(10):
         if usage[j].get():
@@ -686,13 +694,14 @@ def update_usage(*args):
 
 
 if __name__ == "__main__":
-    print('Добро пожаловать!')
+    log = Log()
+    log.print('Добро пожаловать!')
 
     root = AppBuilder(path="window.xml")
 
     # Сессия
     channels_initial = [Channel(wavelength=wavelength) for _, wavelength in initials.configuration]
-    session: Session = Session(channels=channels_initial)
+    session: Session = Session(channels=channels_initial, logger=log)
     # session: Session = Session.load('session.json')
     session_filepath = None
 

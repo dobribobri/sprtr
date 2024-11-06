@@ -8,6 +8,7 @@ from multiprocessing import Pool
 import core.initials as initials
 from core.planck import Body
 import core.tekwfm as tekwfm
+from core.logger import Log
 
 from scipy.signal import savgol_filter
 import scipy.fftpack as fft
@@ -24,7 +25,7 @@ class Stages(Enum):
 
 class Series:
     def __init__(self):
-        print('Series :: __init__()')
+
         self.time: np.ndarray = None   # отсчеты времени
         self.data: np.ndarray = None   # значения
 
@@ -61,7 +62,8 @@ class Channel:
     def __init__(self, wavelength: float,
                  board: int = None, number: int = None,
                  used: bool = True, current_stage: Stages = Stages.Measurement):
-        print('Channel :: __init__() | wavelength = {}, board = {}, number = {}, used = {}, current_stage = {}'.format(wavelength, board, number, used, current_stage))
+        self.log = Log()
+
         self.used = used  # использовать канал?
         self.current_stage = current_stage  # текущий этап
 
@@ -89,7 +91,7 @@ class Channel:
 
     @filtered.setter
     def filtered(self, _val: bool):
-        print("Channel #{} :: @filtered.setter".format(self.number))
+        self.log.print("Channel #{} :: @filtered.setter".format(self.number))
         self.Series[self.current_stage.value].filtered = _val
 
     @property
@@ -98,7 +100,7 @@ class Channel:
 
     @data.setter
     def data(self, _data: np.ndarray):
-        print("Channel #{} :: @data.setter".format(self.number))
+        self.log.print("Channel #{} :: @data.setter".format(self.number))
         self.Series[self.current_stage.value].data = _data
 
     @property
@@ -107,7 +109,7 @@ class Channel:
 
     @data_backup.setter
     def data_backup(self, _data: np.ndarray):
-        print("Channel #{} :: @data_backup.setter".format(self.number))
+        self.log.print("Channel #{} :: @data_backup.setter".format(self.number))
         self.Series[self.current_stage.value].data_backup = _data
 
     @property
@@ -116,7 +118,7 @@ class Channel:
 
     @time.setter
     def time(self, _time: np.ndarray):
-        print("Channel #{} :: @time.setter".format(self.number))
+        self.log.print("Channel #{} :: @time.setter".format(self.number))
         self.Series[self.current_stage.value].time = _time
 
     @property
@@ -125,7 +127,7 @@ class Channel:
 
     @time_backup.setter
     def time_backup(self, _time: np.ndarray):
-        print("Channel #{} :: @time_backup.setter".format(self.number))
+        self.log.print("Channel #{} :: @time_backup.setter".format(self.number))
         self.Series[self.current_stage.value].time_backup = _time
 
     @property
@@ -141,7 +143,7 @@ class Channel:
         return self.time - self.timedelta
 
     def find_peak(self) -> tuple:
-        print("Channel #{} :: find_peak()".format(self.number))
+        self.log.print("Channel #{} :: find_peak()".format(self.number))
         peak = np.argmax(self.data)
         return self.time[peak], self.data[peak]
 
@@ -151,7 +153,7 @@ class Channel:
 
     @mask.setter
     def mask(self, _mask: bool):
-        print("Channel #{} :: @mask.setter".format(self.number))
+        self.log.print("Channel #{} :: @mask.setter".format(self.number))
         self.Series[self.current_stage.value].mask = _mask
 
     @property
@@ -160,19 +162,19 @@ class Channel:
 
     @n_interp.setter
     def n_interp(self, _val: Union[int, None]):
-        print("Channel #{} :: @n_interp.setter".format(self.number))
+        self.log.print("Channel #{} :: @n_interp.setter".format(self.number))
         self.Series[self.current_stage.value].n_interp = _val
 
     def erase_current(self) -> None:
-        print("Channel #{} :: erase_current()".format(self.number))
+        self.log.print("Channel #{} :: erase_current()".format(self.number))
         self.Series[self.current_stage.value] = Series()
 
     def clear_all(self) -> None:
-        print("Channel #{} :: clear_all()".format(self.number))
+        self.log.print("Channel #{} :: clear_all()".format(self.number))
         self.Series = [Series() for _ in range(3)]
 
     def read(self, filepath: str, format_='txt'):
-        print("Channel #{} :: read()".format(self.number))
+        self.log.print("Channel #{} :: read()".format(self.number))
         match format_:
             case 'txt':
                 self.read_txt(filepath)
@@ -182,7 +184,7 @@ class Channel:
                 self.read_txt(filepath)
 
     def read_txt(self, filepath: str):
-        print("Channel #{} :: read_txt() | n_interp = {}".format(self.number, self.n_interp))
+        self.log.print("Channel #{} :: read_txt() | n_interp = {}".format(self.number, self.n_interp))
         series = np.asarray(np.loadtxt(filepath))
         if series.shape != (len(series), 2):
             raise "Неверный формат данных"
@@ -191,7 +193,7 @@ class Channel:
             Series.interpolate(time=series[:, 0], data=series[:, 1], n_interp=self.n_interp)
 
     def read_wfm(self, filepath: str, frameNo=0):
-        print("Channel #{} :: read_wfm()".format(self.number))
+        self.log.print("Channel #{} :: read_wfm()".format(self.number))
         try:
             volts, tstart, tscale, tfrac, tdatefrac, tdate = tekwfm.read_wfm(filepath)
         except tekwfm.WfmReadError:
@@ -220,8 +222,12 @@ class Channel:
 
 
 class Session:
-    def __init__(self, channels: List[Channel] = None):
-        print('Session :: __init__()')
+    def __init__(self, channels: List[Channel] = None, logger: Log = None):
+        if logger is None:
+            logger = Log()
+        self.log = logger
+
+        self.log.print('Session :: __init__()')
         self.channels: List[Channel] = channels  # Каналы
 
         # Настройка коэффициента усиления
@@ -266,7 +272,7 @@ class Session:
 
     @stage.setter
     def stage(self, _stage: Stages = Stages.Measurement):
-        print("Session :: @stage.setter")
+        self.log.print("Session :: @stage.setter")
         for i in range(len(self.channels)):
             self.channels[i].current_stage = _stage
 
@@ -281,7 +287,7 @@ class Session:
 
     @used_indexes.setter
     def used_indexes(self, indexes):
-        print("Session :: @used_indexes.setter")
+        self.log.print("Session :: @used_indexes.setter")
         for i in range(len(self.channels)):
             if i in indexes:
                 self.channels[i].used = True
@@ -300,7 +306,7 @@ class Session:
 
     @used.setter
     def used(self, _mask):
-        print("Session :: @used.setter")
+        self.log.print("Session :: @used.setter")
         for i in range(len(self.channels)):
             self.channels[i].used = _mask[i]
 
@@ -337,7 +343,7 @@ class Session:
 
     @mask_indexes.setter
     def mask_indexes(self, indexes):
-        print("Session :: @mask_indexes.setter")
+        self.log.print("Session :: @mask_indexes.setter")
         for i in self.used_indexes:
             self.channels[i].mask = i in indexes
 
@@ -350,7 +356,7 @@ class Session:
 
     @mask.setter
     def mask(self, _mask):
-        print("Session :: @mask.setter")
+        self.log.print("Session :: @mask.setter")
         for i in range(len(self.channels)):
             self.channels[i].used = (_mask[i] and (i in self.used_indexes))
 
@@ -401,7 +407,7 @@ class Session:
         """
         Прочитать данные из файлов filepaths и записать в каналы в соответствии с конфигурацией
         """
-        print("Session :: read_channels()")
+        self.log.print("Session :: read_channels()")
         if format_ in ['txt', 'wfm']:
 
             for i, filepath in enumerate(filepaths):
@@ -423,6 +429,7 @@ class Session:
                     self.channels[k + i].time, self.channels[k + i].data = \
                         Series.interpolate(series[:, 0], series[:, i + 1], self.channels[k + i].n_interp)
                     self.channels[k + i].mask = True
+                    self.channels[k + i].log = self.log
                 k += n_channels
 
         else:  # TBD .xml
@@ -436,10 +443,11 @@ class Session:
         """
         Прочитать данные из файла filepath и записать в новый канал
         """
-        print("Session :: read_channel()")
+        self.log.print("Session :: read_channel()")
         self.channels[index].number = index + 1
         self.channels[index].read(filepath=filepath, format_=format_)
         self.channels[index].mask = True
+        self.channels[index].log = self.log
 
     @staticmethod
     def __goal_level(wavelength: float, T: float):
@@ -453,7 +461,7 @@ class Session:
         Установка коэффициента усиления.
         Если values = None, коэффициенты усиления устанавливаются в соответствии с эталонными уровнями в initials
         """
-        print("Session :: set_gain()")
+        self.log.print("Session :: set_gain()")
         for i, index in enumerate(self.ready_indexes):
             if values is None:
                 goal_level = Session.__goal_level(wavelength=self.channels[index].wavelength, T=self.T_gain_cal)
@@ -465,7 +473,7 @@ class Session:
         """
         Абсолютная калибровка
         """
-        print("Session :: absolute_calibration()")
+        self.log.print("Session :: absolute_calibration()")
         body = Body(eps=self.eps_abs_cal)
         for index in self.valid_indexes:
             goal_intensity = body.intensity(wavelength=self.channels[index].wavelength, T=self.T_abs_cal)
@@ -476,7 +484,7 @@ class Session:
         """
         Относительная калибровка
         """
-        print("Session :: relative_calibration()")
+        self.log.print("Session :: relative_calibration()")
         body = Body(eps=self.eps_rel_cal)
         I_spectrum = [body.intensity(wavelength=wavelength, T=self.T_rel_cal) for wavelength in self.wavelengths_valid]
         i_max = np.argmax(I_spectrum)
@@ -489,7 +497,7 @@ class Session:
         """
         Вычислить смещения каналов по времени
         """
-        print("Session :: set_timedelta()")
+        self.log.print("Session :: set_timedelta()")
 
         if len(self.valid_indexes) == 0:
             return
@@ -502,7 +510,7 @@ class Session:
             self.channels[i].timedelta = t1 - t0
 
     def get_bounds(self, t_start: float = None, t_stop: float = None, mode='valid'):
-        print("Session :: get_bounds()")
+        self.log.print("Session :: get_bounds()")
         indexes = []
         if mode == 'valid':
             indexes = self.valid_indexes
@@ -520,7 +528,7 @@ class Session:
         return t_start, t_stop
 
     def apply_filter(self, filter_name: str, t_start: float = None, t_stop: float = None):
-        print("Session :: apply_filter() | filter name is {}".format(filter_name))
+        self.log.print("Session :: apply_filter() | filter name is {}".format(filter_name))
         t_start, t_stop = self.get_bounds(t_start, t_stop, mode='ready')
 
         for i in self.ready_indexes:
@@ -567,7 +575,7 @@ class Session:
             self.channels[i].filtered = True
 
     def remove_filters(self):
-        print("Session :: remove_filters()")
+        self.log.print("Session :: remove_filters()")
         for i in self.ready_indexes:
             if self.channels[i].filtered:
                 self.channels[i].time = self.channels[i].time_backup
@@ -581,7 +589,7 @@ class Session:
         """
         Расчет температуры по Планку
         """
-        print("Session :: get_temperature()")
+        self.log.print("Session :: get_temperature()")
         t_start, t_stop = self.get_bounds(t_start, t_stop, mode='valid')
 
         data = []
@@ -601,7 +609,7 @@ class Session:
         self.__data = np.asarray(data).T
 
         if not parallel:
-            print('PARALLEL = FALSE')
+            self.log.print('PARALLEL = FALSE')
             T = []
             for i, spectrum in enumerate(self.__data):
                 T.append(self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=spectrum))
@@ -609,7 +617,7 @@ class Session:
             print('\n')
             return time, np.asarray(T)
 
-        print('PARALLEL PROCESSING')
+        self.log.print('PARALLEL PROCESSING')
         results = []
         n = len(self.__data)
         with Pool(processes=self.n_workers) as pool:
@@ -623,7 +631,7 @@ class Session:
         """
         Сохранить сессию
         """
-        print("Session :: save()")
+        self.log.print("Session :: save()")
         info = {'channels': []}
 
         for attr_name in ['T_gain_cal', 'T_abs_cal', 'eps_abs_cal', 'T_rel_cal', 'eps_rel_cal',
@@ -699,7 +707,7 @@ class Session:
         """
         Очистить сессию
         """
-        print("Session :: clear()")
+        self.log.print("Session :: clear()")
         self.__init__()
         self.save()
 
@@ -707,7 +715,7 @@ class Session:
         """
         Очистить данные каналов
         """
-        print("Session :: erase()")
+        self.log.print("Session :: erase()")
         for channel in self.channels:
             channel.erase_current()
 
