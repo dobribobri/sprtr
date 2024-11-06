@@ -62,7 +62,7 @@ def save_as_session(event=None):
     log.print('Globals :: save_as_session()')
     global session_filepath
     update_session()
-    session_filepath = filedialog.asksaveasfilename(filetypes=[('Параметры сессии (JSON)', '*.json')])
+    session_filepath = filedialog.asksaveasfilename(filetypes=[('Параметры сессии (JSON)', '*.json')], defaultextension='.json')
     session.save(session_filepath)
 
 
@@ -508,7 +508,7 @@ def export_temperatures(event=None):
         data = pd.DataFrame(data=data[:, 1:], index=data[:, 0],
                             columns=["время", 'температура, K'])
 
-        filepath = filedialog.asksaveasfilename(filetypes=[("Таблица Excel", ".xlsx .xls")])
+        filepath = filedialog.asksaveasfilename(filetypes=[("Таблица Excel", ".xlsx .xls")], defaultextension='.xlsx')
 
         if filepath:
             data.to_excel(filepath)
