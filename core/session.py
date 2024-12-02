@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, Tuple
 from enum import Enum
 import numpy as np
 import json
@@ -20,7 +20,8 @@ from scipy import interpolate
 class Stages(Enum):
     TimeSynchro = 0  # синхронизация каналов по времени
     Calibration = 1  # калибровка каналов
-    Measurement = 2  # проведение эксперимента
+    Measurement1 = 2  # проведение эксперимента 1
+    Measurement2 = 3  # проведение эксперимента 2
 
 
 class Series:
@@ -61,7 +62,7 @@ class Series:
 class Channel:
     def __init__(self, wavelength: float,
                  board: int = None, number: int = None,
-                 used: bool = True, current_stage: Stages = Stages.Measurement):
+                 used: bool = True, current_stage: Stages = Stages.Measurement2):
         self.log = Log()
 
         self.used = used  # использовать канал?
@@ -71,11 +72,12 @@ class Channel:
         self.number = number  # номер канала
         self.wavelength = wavelength  # длина волны
 
-        # 0 - TimeSynchro Series, 1 - Calibration Series, 2 - Measurement Series
-        self.Series = [Series() for _ in range(3)]
+        # 0 - TimeSynchro Series, 1 - Calibration Series, 2 - Measurement1 Series, 3 - Measurement2 Series
+        self.Series = [Series() for _ in range(4)]
         # 0 - данные сеанса для определения временных сдвигов
         # 1 - данные калибровочного сеанса
-        # 2 - данные эксперимента
+        # 2 - данные эксперимента 1
+        # 3 - данные эксперимента 2
 
         self.gain = 1.  # коэффициент усиления
         self.alpha = 1.  # калибровочный коэффициент, переводящий уровни с АЦП в интенсивности АЧТ
@@ -245,11 +247,15 @@ class Session:
         self.eps_rel_cal = 1                          # излучательная способность эталона
 
         # Измерение образца
-        self.eps_sample = 1.                          # излучательная способность образца
-        self.tp_n_interp_exp: Union[int, None] = 100               # число точек интерполяции при расчете
+        self.eps_sample = 1.                          # излучательная способность образца (эксперимент 1)
+        self.tp_n_interp_exp1: Union[int, None] = 100  # число точек интерполяции при расчете эксперимента 1
+        self.tp_n_interp_exp2: Union[int, None] = 100  # число точек интерполяции при расчете эксперимента 2
+        self.T_bounds: Tuple[float, float] = (1e1, 1e4)  # ограничения по значению температуры (эксперимент 2)
+        self.eps_bounds: Tuple[float, float] = (0, 1)  # ограничения по значению коэффициента излучения (эксперимент 2)
 
         # Кол-во ядер
-        self.n_workers = 8
+        self.n_workers_exp1 = 8
+        self.n_workers_exp2 = 8
 
         # Данные, направленные на обработку
         self.__data = None
@@ -271,7 +277,7 @@ class Session:
         return s
 
     @stage.setter
-    def stage(self, _stage: Stages = Stages.Measurement):
+    def stage(self, _stage: Stages = Stages.Measurement2):
         self.log.print("Session :: @stage.setter")
         for i in range(len(self.channels)):
             self.channels[i].current_stage = _stage
@@ -295,7 +301,8 @@ class Session:
                 self.channels[i].used = False
                 self.channels[i].Series[Stages.TimeSynchro.value].mask = False
                 self.channels[i].Series[Stages.Calibration.value].mask = False
-                self.channels[i].Series[Stages.Measurement.value].mask = False
+                self.channels[i].Series[Stages.Measurement1.value].mask = False
+                self.channels[i].Series[Stages.Measurement2.value].mask = False
 
     @property
     def used(self) -> np.ndarray:
@@ -582,7 +589,7 @@ class Session:
                 self.channels[i].data = self.channels[i].data_backup
                 self.channels[i].filtered = False
 
-    def process(self, i):
+    def process_temperature(self, i):
         return i, self.sample.temperature(wavelengths=self.wavelengths_valid, intensities=self.__data[i])
 
     def get_temperature(self, t_start: float = None, t_stop: float = None, parallel: bool = True):
@@ -599,7 +606,7 @@ class Session:
             lengths.append(np.count_nonzero(cond))
             data.append([self.channels[i].time_synced[cond], self.channels[i].data_calibrated[cond]])
 
-        n_interp = self.tp_n_interp_exp
+        n_interp = self.tp_n_interp_exp1
         if n_interp is None:
             n_interp = np.min(lengths)
 
@@ -620,12 +627,64 @@ class Session:
         self.log.print('PARALLEL PROCESSING')
         results = []
         n = len(self.__data)
-        with Pool(processes=self.n_workers) as pool:
-            for result in tqdm.tqdm(pool.imap_unordered(self.process, range(n)), total=n):
+        with Pool(processes=self.n_workers_exp1) as pool:
+            for result in tqdm.tqdm(pool.imap_unordered(self.process_temperature, range(n)), total=n):
                 results.append(result)
 
         results = np.asarray(sorted(results, key=lambda e: e[0]))
         return time, results[:, 1]  # T
+
+    def process_temperature_and_emissivity(self, i):
+        T, eps = self.sample.temperature_and_emissivity(wavelengths=self.wavelengths_valid, intensities=self.__data[i],
+                                                        T_bounds=self.T_bounds, eps_bounds=self.eps_bounds)
+        return i, T, eps
+
+    def get_temperature_and_emissivity(self, t_start: float = None, t_stop: float = None, parallel: bool = True):
+        """
+        Подбор температуры и излучательной способности по Планку
+        """
+        self.log.print("Session :: get_temperature_and_emissivity()")
+        t_start, t_stop = self.get_bounds(t_start, t_stop, mode='valid')
+
+        data = []
+        lengths = []
+        for i in self.valid_indexes:
+            cond = (t_start <= self.channels[i].time_synced) & (self.channels[i].time_synced <= t_stop)
+            lengths.append(np.count_nonzero(cond))
+            data.append([self.channels[i].time_synced[cond], self.channels[i].data_calibrated[cond]])
+
+        n_interp = self.tp_n_interp_exp2
+        if n_interp is None:
+            n_interp = np.min(lengths)
+
+        time = np.linspace(t_start, t_stop, n_interp)
+        for i, _ in enumerate(self.valid_indexes):
+            data[i] = np.interp(time, data[i][0], data[i][1])
+        self.__data = np.asarray(data).T
+
+        if not parallel:
+            self.log.print('PARALLEL = FALSE')
+            T, eps = [], []
+            for i, spectrum in enumerate(self.__data):
+                temperature, epsilon = self.sample.temperature_and_emissivity(wavelengths=self.wavelengths_valid,
+                                                                              intensities=spectrum,
+                                                                              T_bounds=self.T_bounds,
+                                                                              eps_bounds=self.eps_bounds)
+                T.append(temperature)
+                eps.append(epsilon)
+                print('\rВыполнено\t{:.2f} %'.format((i + 1) / len(self.__data) * 100.), flush=True, end='          ')
+            print('\n')
+            return time, np.asarray(T), np.asarray(eps)
+
+        self.log.print('PARALLEL PROCESSING')
+        results = []
+        n = len(self.__data)
+        with Pool(processes=self.n_workers_exp2) as pool:
+            for result in tqdm.tqdm(pool.imap_unordered(self.process_temperature_and_emissivity, range(n)), total=n):
+                results.append(result)
+
+        results = np.asarray(sorted(results, key=lambda e: e[0]))
+        return time, results[:, 1], results[:, 2]  # T and eps
 
     def save(self, filepath='session') -> None:
         """
@@ -635,7 +694,8 @@ class Session:
         info = {'channels': []}
 
         for attr_name in ['T_gain_cal', 'T_abs_cal', 'eps_abs_cal', 'T_rel_cal', 'eps_rel_cal',
-                          'eps_sample', 'tp_n_interp_exp', 'n_workers']:
+                          'eps_sample', 'tp_n_interp_exp1', 'tp_n_interp_exp2', 'n_workers_exp1', 'n_workers_exp2',
+                          'T_bounds', 'eps_bounds']:
             info[attr_name] = getattr(self, attr_name)
 
         for channel in self.channels:
@@ -674,7 +734,8 @@ class Session:
         session = Session()
 
         for attr_name in ['T_gain_cal', 'T_abs_cal', 'eps_abs_cal', 'T_rel_cal', 'eps_rel_cal',
-                          'eps_sample', 'tp_n_interp_exp', 'n_workers']:
+                          'eps_sample', 'tp_n_interp_exp1', 'tp_n_interp_exp2', 'n_workers_exp1', 'n_workers_exp2',
+                          'T_bounds', 'eps_bounds']:
             setattr(session, attr_name, info[attr_name])
 
         n_channels = len(info['channels'])

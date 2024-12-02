@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 import numpy as np
 from scipy.optimize import curve_fit
 
@@ -70,6 +70,24 @@ class Body(BlackBody):
         """
         popt, _ = curve_fit(self.intensity, wavelengths, intensities, bounds=(1e1, 1e4))
         return popt[0]
+
+    def __intensity(self, wavelength, T, eps):
+        return eps * super().intensity(wavelength, T)
+
+    def temperature_and_emissivity(self, wavelengths: np.ndarray, intensities: np.ndarray,
+                                   T_bounds: Tuple[float, float] = (1e1, 1e4),
+                                   eps_bounds: Tuple[float, float] = (0, 1)) -> Tuple[float, float]:
+        """
+        Определение температуры и коэффициента излучения по данным об интенсивности
+        :param wavelengths: длины волн (в мкм)
+        :param intensities: интенсивности (в Вт/см^2/мкм)
+        :param T_bounds: область допустимых температур (К)
+        :param eps_bounds: область допустимых значений коэффициента излучения (безразм.)
+        :return: Температура (в К) и коэффициент излучения (безразм.)
+        """
+        bounds = ([T_bounds[0], eps_bounds[0]], [T_bounds[1], eps_bounds[1]])
+        popt, _ = curve_fit(self.__intensity, wavelengths, intensities, bounds=bounds)
+        return popt[0], popt[1]
 
 
 if __name__ == '__main__':

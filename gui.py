@@ -1,6 +1,7 @@
 from typing import Union, Tuple
 from functools import partial
 from sys import exit
+import traceback
 
 from formation import AppBuilder
 
@@ -81,10 +82,12 @@ def set_gain(event=None, T=2500):
     session.T_gain_cal = T
     try:
         session.set_gain()
-    except TypeError:
+    except TypeError as e:
         messagebox.showerror(title='Ошибка', message='Невозможно рассчитать коэффициенты усиления. \n Данные сеанса неверные либо отсутствуют')
+        log.print_exception(e)
     except Exception as e:
         messagebox.showerror(title='Ошибка', message=str(e))
+        log.print_exception(e)
     finally:
         update_interface()
         root.notebook_main.select(Stages.Calibration.value + 1)
@@ -192,7 +195,7 @@ def filter_clear(event=None):
 
 
 # Работа с фалами
-def load_channel(event=None, channel=0, stage=Stages.Measurement):
+def load_channel(event=None, channel=0, stage=Stages.Measurement2):
     global session, root
 
     log.print('Globals :: load_channel() | channel {} | stage {}'.format(channel, stage))
@@ -209,7 +212,8 @@ def load_channel(event=None, channel=0, stage=Stages.Measurement):
     try:
         ext = re.split(r'\.', filepath)
         ext = ext[-1]
-    except TypeError:
+    except TypeError as e:
+        log.print_exception(e)
         return
 
     # noinspection PyBroadException
@@ -221,21 +225,26 @@ def load_channel(event=None, channel=0, stage=Stages.Measurement):
                 sync_load_buttons[index].configure(background="lightgreen")
             case Stages.Calibration.value:
                 cal_load_buttons[index].configure(background="lightgreen")
-            case Stages.Measurement.value:
-                exp_load_buttons[index].configure(background="lightgreen")
+            case Stages.Measurement1.value:
+                exp1_load_buttons[index].configure(background="lightgreen")
+            case Stages.Measurement2.value:
+                exp2_load_buttons[index].configure(background="lightgreen")
 
     except Exception as e:
         messagebox.showerror(title='Ошибка чтения файла', message=str(e))
+        log.print_exception(e)
         match stage.value:
             case Stages.TimeSynchro.value:
                 sync_load_buttons[index].configure(background="pink")
             case Stages.Calibration.value:
                 cal_load_buttons[index].configure(background="pink")
-            case Stages.Measurement.value:
-                exp_load_buttons[index].configure(background="pink")
+            case Stages.Measurement1.value:
+                exp1_load_buttons[index].configure(background="pink")
+            case Stages.Measurement2.value:
+                exp2_load_buttons[index].configure(background="pink")
 
 
-def load_all(event=None, stage=Stages.Measurement):
+def load_all(event=None, stage=Stages.Measurement2):
     global session, root
 
     log.print('Globals :: load_all()')
@@ -258,7 +267,8 @@ def load_all(event=None, stage=Stages.Measurement):
         for filepath in filepaths:
             ext = re.split(r'\.', filepath)
             extensions.append(ext[-1])
-    except TypeError:
+    except TypeError as e:
+        log.print_exception(e)
         return
 
     if len(np.unique(extensions)) > 1:
@@ -269,15 +279,17 @@ def load_all(event=None, stage=Stages.Measurement):
     # noinspection PyBroadException
     try:
         session.read_channels(filepaths=filepaths, format_=ext)
-    except IndexError:
+    except IndexError as e:
         messagebox.showwarning(title='Предупреждение', message='Вы пытаетесь загрузить больше 10 каналов')
+        log.print_exception(e)
     except Exception as e:
         messagebox.showerror(title='Ошибка чтения файла', message=str(e))
+        log.print_exception(e)
 
     update_interface()
 
 
-def clear_all(event=None, stage=Stages.Measurement):
+def clear_all(event=None, stage=Stages.Measurement2):
     global session, root
 
     log.print('Globals :: clear_all()')
@@ -326,7 +338,7 @@ def plt_on_button_release(event):
     figure.canvas.flush_events()
 
 
-def show(event=None, stage=Stages.Measurement):  # показать исходные данные
+def show(event=None, stage=Stages.Measurement2):  # показать исходные данные
     global root
     global figure, axes
 
@@ -357,22 +369,23 @@ def show(event=None, stage=Stages.Measurement):  # показать исходн
     plt.show()
 
 
-def plot(event=None, stage=Stages.Measurement):  # показать результат обработки
+def plot(event=None, stage=Stages.Measurement2):  # показать результат обработки
     global result
 
     log.print('Globals :: plot() | stage = {}'.format(stage))
 
     update_session()
     fig, ax = plt.subplots()
-    for j, channel in enumerate(session.channels_valid):
-        ax.plot(channel.time_synced, channel.data_calibrated,
-                label='Канал #{}'.format(channel.number))
-    ax.set_xlabel('Время')
-    ax.set_ylabel('Сигнал')
-    ax.legend(loc="upper right", frameon=True)
-    ax.grid(ls=':', color='gray')
+    if stage.value != Stages.Measurement2.value:
+        for j, channel in enumerate(session.channels_valid):
+            ax.plot(channel.time_synced, channel.data_calibrated,
+                    label='Канал #{}'.format(channel.number))
+        ax.set_xlabel('Время')
+        ax.set_ylabel('Сигнал')
+        ax.legend(loc="upper right", frameon=True)
+        ax.grid(ls=':', color='gray')
 
-    if stage.value == Stages.Measurement.value:
+    if stage.value == Stages.Measurement1.value:
         if result is not None:
             time, T = result
 
@@ -381,10 +394,25 @@ def plot(event=None, stage=Stages.Measurement):  # показать резуль
             ax.set_ylabel('Температура, К')
             ax.legend(loc="upper center", frameon=True)
 
+    if stage.value == Stages.Measurement2.value:
+        if result is not None:
+            time, T, eps = result
+
+            ax.plot(time, T, color='crimson', lw=2, label='Температура')
+            ax.set_ylabel('Температура, К')
+            ax.legend(loc="upper left", frameon=True)
+
+            ax = plt.twinx(ax)
+            ax.plot(time, eps, color='blue', lw=2, label='Коэфф. излучения')
+            ax.set_ylabel('Излучательная способность, безразм.')
+            ax.legend(loc="upper right", frameon=True)
+
     plt.tight_layout()
     plt.draw()
 
-    if root.mode_3D.get() and stage.value == Stages.Measurement.value and result is not None:
+    if root.mode_3D_exp1.get() and \
+            stage.value == Stages.Measurement1.value and \
+            result is not None:
         time, T = result
 
         spectra = []
@@ -434,6 +462,7 @@ def set_eps_cal(event=None):  # Излучательная способност�
             eps = dict(df.to_numpy().tolist())
         except Exception as e:
             messagebox.showerror(title='Ошибка', message=str(e))
+            log.print_exception(e)
             eps = 1
 
     if root.calibration_type.get():  # Относительная калибровка
@@ -470,6 +499,7 @@ def set_eps_exp(event=None):
             eps = dict(df.to_numpy().tolist())
         except Exception as e:
             messagebox.showerror(title='Ошибка', message=str(e))
+            log.print_exception(e)
             eps = 1
 
     session.eps_sample = eps
@@ -486,10 +516,41 @@ def calculate_temperatures(event=None):
     global result
 
     try:
-        parallel = root.parallelize.get()
+        parallel = root.parallelize_exp1.get()
         result = session.get_temperature(t_start=t_start, t_stop=t_stop, parallel=parallel)
     except Exception as e:
         messagebox.showerror('Ошибка расчета температуры', str(e))
+        log.print_exception(e)
+
+
+def calculate_temperatures_and_emissivity(event=None):
+    global session
+
+    log.print('Globals :: calculate_temperatures()')
+
+    update_session()
+
+    global t_start, t_stop
+    global result
+
+    try:
+        parallel = root.parallelize_exp2.get()
+
+        # temp_min = root.temp_min_exp2.get()
+        # temp_max = root.temp_max_exp2.get()
+        #
+        # eps_min = root.eps_min_exp2.get()
+        # eps_max = root.eps_max_exp2.get()
+        #
+        # T_bounds = (temp_min, temp_max)
+        # eps_bounds = (eps_min, eps_max)
+        # session.T_bounds = T_bounds
+        # session.eps_bounds = eps_bounds
+
+        result = session.get_temperature_and_emissivity(t_start=t_start, t_stop=t_stop, parallel=parallel)
+    except Exception as e:
+        messagebox.showerror('Ошибка расчета температуры / излучательной способности', str(e))
+        log.print_exception(e)
 
 
 def export_temperatures(event=None):
@@ -514,6 +575,28 @@ def export_temperatures(event=None):
             data.to_excel(filepath)
 
 
+def export_temperatures_and_emissivity(event=None):
+    global result
+
+    log.print('Globals :: export_temperatures()')
+
+    if result is not None:
+        time, T, eps = result
+
+        data = []
+        for j, (timestamp, temperature, emissivity) in enumerate(zip(time, T, eps)):
+            data.append([j + 1, timestamp, temperature, emissivity])
+        data = np.asarray(data)
+
+        data = pd.DataFrame(data=data[:, 1:], index=data[:, 0],
+                            columns=["время", 'температура, K', 'коэфф. излучения, безразм.'])
+
+        filepath = filedialog.asksaveasfilename(filetypes=[("Таблица Excel", ".xlsx .xls")], defaultextension='.xlsx')
+
+        if filepath:
+            data.to_excel(filepath)
+
+
 # Основное
 def update_session(*args):
     global session
@@ -530,9 +613,30 @@ def update_session(*args):
     else:  # Абсолютная калибровка
         session.T_abs_cal = root.T_cal.get()
 
-    session.tp_n_interp_exp = None
-    if root.tp_interp_exp.get():
-        session.tp_n_interp_exp = root.tp_n_interp_exp.get()
+    session.tp_n_interp_exp1 = None
+    if root.tp_interp_exp1.get():
+        session.tp_n_interp_exp1 = root.tp_n_interp_exp1.get()
+
+    session.tp_n_interp_exp2 = None
+    if root.tp_interp_exp2.get():
+        session.tp_n_interp_exp2 = root.tp_n_interp_exp2.get()
+
+    if root.parallelize_exp1.get():
+        session.n_workers_exp1 = root.n_workers_exp1.get()
+
+    if root.parallelize_exp2.get():
+        session.n_workers_exp2 = root.n_workers_exp2.get()
+
+    temp_min = root.temp_min_exp2.get()
+    temp_max = root.temp_max_exp2.get()
+
+    eps_min = root.eps_min_exp2.get()
+    eps_max = root.eps_max_exp2.get()
+
+    T_bounds = (temp_min, temp_max)
+    eps_bounds = (eps_min, eps_max)
+    session.T_bounds = T_bounds
+    session.eps_bounds = eps_bounds
 
     for j in range(10):
         try:
@@ -553,10 +657,14 @@ def update_session(*args):
                         mask = cal_mask[j].get()
                         if root.fr_interp_cal.get():
                             n_interp = root.fr_n_interp_cal.get()
-                    case Stages.Measurement.value:
-                        mask = exp_mask[j].get()
-                        if root.fr_interp_exp.get():
-                            n_interp = root.fr_n_interp_exp.get()
+                    case Stages.Measurement1.value:
+                        mask = exp1_mask[j].get()
+                        if root.fr_interp_exp1.get():
+                            n_interp = root.fr_n_interp_exp1.get()
+                    case Stages.Measurement2.value:
+                        mask = exp2_mask[j].get()
+                        if root.fr_interp_exp2.get():
+                            n_interp = root.fr_n_interp_exp2.get()
 
                 session.channels[j].Series[stage.value].n_interp = n_interp
                 session.channels[j].Series[stage.value].mask = mask
@@ -566,7 +674,7 @@ def update_session(*args):
 
     tab_index = root.notebook_main.index(root.notebook_main.select())
     stage_val = tab_index - 1
-    if 0 <= stage_val < 3:
+    if 0 <= stage_val < 4:
         session.stage = Stages(stage_val)
 
     # update_interface()
@@ -582,19 +690,16 @@ def update_interface(*args):
         match stage.value:
             case Stages.TimeSynchro.value:
                 root.fr_interp_sync.set(bool(n_interp))
-                # root.checkbutton_fr_interp_sync.update()
                 root.fr_n_interp_sync.set(n_interp)
-                # root.entry_n_fr_interp_sync.update()
             case Stages.Calibration.value:
                 root.fr_interp_cal.set(bool(n_interp))
-                # root.checkbutton_fr_interp_cal.update()
                 root.fr_n_interp_cal.set(n_interp)
-                # root.entry_n_fr_interp_cal.update()
-            case Stages.Measurement.value:
-                root.fr_interp_exp.set(bool(n_interp))
-                # root.checkbutton_fr_interp_exp.update()
-                root.fr_n_interp_exp.set(n_interp)
-                # root.entry_n_fr_interp_exp.update()
+            case Stages.Measurement1.value:
+                root.fr_interp_exp1.set(bool(n_interp))
+                root.fr_n_interp_exp1.set(n_interp)
+            case Stages.Measurement2.value:
+                root.fr_interp_exp2.set(bool(n_interp))
+                root.fr_n_interp_exp2.set(n_interp)
 
     for j in range(10):
 
@@ -602,19 +707,14 @@ def update_interface(*args):
             usage_checkbuttons[j].select()
         else:
             usage_checkbuttons[j].deselect()
-        # usage_checkbuttons[j].update()
 
         lambdas[j].set(session.channels[j].wavelength)
-        # lambdas_spinboxes[j].update()
 
         gains[j].set(session.channels[j].gain)
-        # gains_spinboxes[j].update()
 
         deltas[j].set(session.channels[j].timedelta)
-        # deltas_spinboxes[j].update()
 
         alphas[j].set(session.channels[j].alpha)
-        # alphas_spinboxes[j].update()
 
         for stage in Stages:
             mask = session.channels[j].Series[stage.value].mask
@@ -622,21 +722,30 @@ def update_interface(*args):
             match stage.value:
                 case Stages.TimeSynchro.value:
                     sync_mask[j].set(mask)
-                    # sync_checkbuttons[j].update()
                     sync_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
                 case Stages.Calibration.value:
                     cal_mask[j].set(mask)
-                    # cal_checkbuttons[j].update()
                     cal_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
-                case Stages.Measurement.value:
-                    exp_mask[j].set(mask)
-                    # exp_checkbuttons[j].update()
-                    exp_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
+                case Stages.Measurement1.value:
+                    exp1_mask[j].set(mask)
+                    exp1_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
+                case Stages.Measurement2.value:
+                    exp2_mask[j].set(mask)
+                    exp2_load_buttons[j].configure(background="lightgreen" if loaded else original_button_color)
 
-    root.tp_interp_exp.set(bool(session.tp_n_interp_exp))
-    # root.checkbutton_tp_interp_calc_exp.update()
-    root.tp_n_interp_exp.set(session.tp_n_interp_exp)
-    # root.entry_n_tp_interp_calc_exp.update()
+    root.tp_interp_exp1.set(bool(session.tp_n_interp_exp1))
+    root.tp_interp_exp2.set(bool(session.tp_n_interp_exp2))
+    root.tp_n_interp_exp1.set(session.tp_n_interp_exp1)
+    root.tp_n_interp_exp2.set(session.tp_n_interp_exp2)
+
+    root.n_workers_exp1.set(session.n_workers_exp1)
+    root.n_workers_exp2.set(session.n_workers_exp2)
+
+    root.temp_min_exp2.set(session.T_bounds[0])
+    root.temp_max_exp2.set(session.T_bounds[1])
+
+    root.eps_min_exp2.set(session.eps_bounds[0])
+    root.eps_max_exp2.set(session.eps_bounds[1])
 
     # root._app.update()
     # root._app.update_idletasks()
@@ -659,11 +768,13 @@ def update_usage(*args):
 
             sync_checkbuttons[j].configure(state=NORMAL)
             cal_checkbuttons[j].configure(state=NORMAL)
-            exp_checkbuttons[j].configure(state=NORMAL)
+            exp1_checkbuttons[j].configure(state=NORMAL)
+            exp2_checkbuttons[j].configure(state=NORMAL)
 
             sync_load_buttons[j].configure(state=NORMAL)
             cal_load_buttons[j].configure(state=NORMAL)
-            exp_load_buttons[j].configure(state=NORMAL)
+            exp1_load_buttons[j].configure(state=NORMAL)
+            exp2_load_buttons[j].configure(state=NORMAL)
 
         else:
             for stage in Stages:
@@ -671,13 +782,12 @@ def update_usage(*args):
                 match stage.value:
                     case Stages.TimeSynchro.value:
                         sync_mask[j].set(False)
-                        # sync_checkbuttons[j].update()
                     case Stages.Calibration.value:
                         cal_mask[j].set(False)
-                        # cal_checkbuttons[j].update()
-                    case Stages.Measurement.value:
-                        exp_mask[j].set(False)
-                        # exp_checkbuttons[j].update()
+                    case Stages.Measurement1.value:
+                        exp1_mask[j].set(False)
+                    case Stages.Measurement2.value:
+                        exp2_mask[j].set(False)
 
             lambdas_spinboxes[j].configure(state=DISABLED)
             deltas_spinboxes[j].configure(state=DISABLED)
@@ -686,11 +796,13 @@ def update_usage(*args):
 
             sync_checkbuttons[j].configure(state=DISABLED)
             cal_checkbuttons[j].configure(state=DISABLED)
-            exp_checkbuttons[j].configure(state=DISABLED)
+            exp1_checkbuttons[j].configure(state=DISABLED)
+            exp2_checkbuttons[j].configure(state=DISABLED)
 
             sync_load_buttons[j].configure(state=DISABLED)
             cal_load_buttons[j].configure(state=DISABLED)
-            exp_load_buttons[j].configure(state=DISABLED)
+            exp1_load_buttons[j].configure(state=DISABLED)
+            exp2_load_buttons[j].configure(state=DISABLED)
 
 
 if __name__ == "__main__":
@@ -707,18 +819,19 @@ if __name__ == "__main__":
 
     figure, axes, area = None, None, None
     t_start, t_stop = None, None  # временной интервал
-    result: Union[Tuple[np.ndarray, np.ndarray], None] = None
+    result: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray], None] = None
 
     root.notebook_main.select(0)
 
     # Checkbuttons
-    usage_checkbuttons, sync_checkbuttons, cal_checkbuttons, exp_checkbuttons = [], [], [], []
+    usage_checkbuttons, sync_checkbuttons, cal_checkbuttons, exp1_checkbuttons, exp2_checkbuttons = [], [], [], [], []
     for i in range(10):
         chn = str(i + 1).zfill(2)
         exec("usage_checkbuttons.append(root.checkbutton_channel_{})".format(chn))
         exec("sync_checkbuttons.append(root.checkbutton_ch{}_sync)".format(chn))
         exec("cal_checkbuttons.append(root.checkbutton_ch{}_cal)".format(chn))
-        exec("exp_checkbuttons.append(root.checkbutton_ch{}_calc_exp)".format(chn))
+        exec("exp1_checkbuttons.append(root.checkbutton_ch{}_calc_exp1)".format(chn))
+        exec("exp2_checkbuttons.append(root.checkbutton_ch{}_calc_exp2)".format(chn))
 
     # Spinboxes
     lambdas_spinboxes, deltas_spinboxes, alphas_spinboxes, gains_spinboxes = \
@@ -730,15 +843,21 @@ if __name__ == "__main__":
         exec("alphas_spinboxes.append(root.spinbox_alpha_{})".format(chn))
         exec("gains_spinboxes.append(root.spinbox_gain_{})".format(chn))
 
+    temp_min_spinbox = root.spinbox_temp_min_exp2
+    temp_max_spinbox = root.spinbox_temp_max_exp2
+    eps_min_spinbox = root.spinbox_eps_min_exp2
+    eps_max_spinbox = root.spinbox_eps_max_exp2
+
     # Load buttons
-    sync_load_buttons, cal_load_buttons, exp_load_buttons = [], [], []
+    sync_load_buttons, cal_load_buttons, exp1_load_buttons, exp2_load_buttons = [], [], [], []
     for i in range(10):
         chn = str(i + 1).zfill(2)
         exec("sync_load_buttons.append(root.button_load_ch{}_sync)".format(chn))
         exec("cal_load_buttons.append(root.button_load_ch{}_cal)".format(chn))
-        exec("exp_load_buttons.append(root.button_load_ch{}_exp)".format(chn))
+        exec("exp1_load_buttons.append(root.button_load_ch{}_exp1)".format(chn))
+        exec("exp2_load_buttons.append(root.button_load_ch{}_exp2)".format(chn))
 
-    original_button_color = root.button_load_all_exp.cget("background")
+    original_button_color = root.button_load_all_exp1.cget("background")
 
     # Основные переменные
     usage, lambdas, deltas, alphas, gains = [], [], [], [], []
@@ -754,12 +873,13 @@ if __name__ == "__main__":
         usage[i].trace('w', update_usage)
 
     # Другие переменные
-    sync_mask, cal_mask, exp_mask = [], [], []
+    sync_mask, cal_mask, exp1_mask, exp2_mask = [], [], [], []
     for i in range(10):
         chn = str(i + 1).zfill(2)
         exec("sync_mask.append(root.sync_ch{})".format(chn))  # Синхронизация
         exec("cal_mask.append(root.cal_ch{})".format(chn))    # Калибровка
-        exec("exp_mask.append(root.temp_ch{})".format(chn))   # Эксперимент
+        exec("exp1_mask.append(root.exp1_ch{})".format(chn))   # Эксперимент 1
+        exec("exp2_mask.append(root.exp2_ch{})".format(chn))  # Эксперимент 2
 
     update_interface()
 
@@ -769,29 +889,41 @@ if __name__ == "__main__":
     s = ''
     for i in range(10):
         chn = str(i + 1).zfill(2)
-        s += 'load_ch{}_sync, load_ch{}_cal, load_ch{}_exp, '.format(chn, chn, chn)
+        s += 'load_ch{}_sync, load_ch{}_cal, load_ch{}_exp1, load_ch{}_exp2, '.format(chn, chn, chn, chn)
     s = s[:-2] + ' = '
     for i in range(10):
         s += 'partial(load_channel, channel={}, stage=Stages.TimeSynchro), '.format(i)
         s += 'partial(load_channel, channel={}, stage=Stages.Calibration), '.format(i)
-        s += 'partial(load_channel, channel={}, stage=Stages.Measurement), '.format(i)
+        s += 'partial(load_channel, channel={}, stage=Stages.Measurement1), '.format(i)
+        s += 'partial(load_channel, channel={}, stage=Stages.Measurement2), '.format(i)
     exec(s[:-2])
 
-    load_all_sync, load_all_cal, load_all_exp = partial(load_all, stage=Stages.TimeSynchro), \
-        partial(load_all, stage=Stages.Calibration), partial(load_all, stage=Stages.Measurement)
-    clear_all_sync, clear_all_cal, clear_all_exp = partial(clear_all, stage=Stages.TimeSynchro), \
-        partial(clear_all, stage=Stages.Calibration), partial(clear_all, stage=Stages.Measurement)
+    load_all_sync, load_all_cal, load_all_exp1, load_all_exp2 = \
+        partial(load_all, stage=Stages.TimeSynchro), \
+        partial(load_all, stage=Stages.Calibration), \
+        partial(load_all, stage=Stages.Measurement1), partial(load_all, stage=Stages.Measurement2)
 
-    show_sync, show_cal, show_exp = partial(show, stage=Stages.TimeSynchro), partial(show, stage=Stages.Calibration), \
-        partial(show, stage=Stages.Measurement)
+    clear_all_sync, clear_all_cal, clear_all_exp1, clear_all_exp2 = \
+        partial(clear_all, stage=Stages.TimeSynchro), \
+        partial(clear_all, stage=Stages.Calibration), \
+        partial(clear_all, stage=Stages.Measurement1), partial(clear_all, stage=Stages.Measurement2)
 
-    plot_sync, plot_cal, plot_exp = partial(plot, stage=Stages.TimeSynchro), partial(plot, stage=Stages.Calibration), \
-        partial(plot, stage=Stages.Measurement)
+    show_sync, show_cal, show_exp1, show_exp2 = \
+        partial(show, stage=Stages.TimeSynchro), \
+        partial(show, stage=Stages.Calibration), \
+        partial(show, stage=Stages.Measurement1), partial(show, stage=Stages.Measurement2)
+
+    plot_sync, plot_cal, plot_exp1, plot_exp2 = \
+        partial(plot, stage=Stages.TimeSynchro), \
+        partial(plot, stage=Stages.Calibration), \
+        partial(plot, stage=Stages.Measurement1), partial(plot, stage=Stages.Measurement2)
 
     filter_convolve, filter_fft, filter_savgol, filter_uniform, filter_lowess, filter_gauss, filter_spline = \
         partial(apply_filter, name='convolve'), partial(apply_filter, name='fft'), partial(apply_filter, name='savgol'), \
         partial(apply_filter, name='uniform'), partial(apply_filter, name='lowess'), partial(apply_filter, name='gaussian'), \
         partial(apply_filter, name='spline')
+
+    set_eps_exp1 = set_eps_exp
 
     root.connect_callbacks(globals())
 
