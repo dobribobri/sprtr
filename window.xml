@@ -267,8 +267,8 @@
       </tkinter.LabelFrame>
       <tkinter.Button name="button_plot_sync" attr:command="plot_sync" attr:text="График" layout:width="250" layout:height="35" layout:x="230" layout:y="515" layout:bordermode="outside"/>
       <tkinter.ttk.Labelframe name="labelframe_1" attr:text="Метод" attr:layout="place" layout:width="685" layout:height="80" layout:x="8" layout:y="235" layout:bordermode="outside">
-        <tkinter.Radiobutton name="radiobutton_1" attr:text="По фронту" attr:value="1" attr:variable="sync_method" layout:width="246" layout:height="25" layout:x="35" layout:y="30" layout:bordermode="outside"/>
-        <tkinter.Radiobutton name="radiobutton_2" attr:text="По максимумам" attr:value="0" attr:variable="sync_method" layout:width="215" layout:height="25" layout:x="370" layout:y="30" layout:bordermode="outside"/>
+        <tkinter.Radiobutton name="radiobutton_2" attr:text="По максимуму сигнала" attr:value="0" attr:variable="sync_method" layout:width="215" layout:height="25" layout:x="370" layout:y="30" layout:bordermode="outside"/>
+        <tkinter.Radiobutton name="radiobutton_1" attr:text="По максимуму производной" attr:value="1" attr:variable="sync_method" layout:width="246" layout:height="25" layout:x="35" layout:y="30" layout:bordermode="outside"/>
       </tkinter.ttk.Labelframe>
     </tkinter.Frame>
     <tkinter.Frame name="frame_calibr" attr:layout="place" layout:text="Калибровка">
