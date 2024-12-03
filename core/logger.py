@@ -7,12 +7,12 @@ class Log:
         self.last_message = ''
         self.n_repeats = 0
 
-        with open('log', 'a') as file:
-            file.write(str(datetime.datetime.now()) + '\n')
+        # with open('log', 'a') as file:
+        #     file.write(str(datetime.datetime.now()) + '\n')
 
     def print(self, s: str):
         with open('log', 'a') as file:
-            file.write(s + '\n')
+            file.write(str(datetime.datetime.now()) + '\t' + s + '\n')
 
         if s == self.last_message:
             self.n_repeats += 1
@@ -29,4 +29,5 @@ class Log:
     @staticmethod
     def print_exception(e: Exception):
         with open('log', 'a') as file:
+            file.write(str(datetime.datetime.now()) + '\n')
             traceback.print_exception(type(e), value=e, tb=e.__traceback__, file=file)

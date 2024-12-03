@@ -442,6 +442,7 @@ def apply_sync(event=None):
     log.print('Globals :: apply_sync()')
 
     update_session()
+
     session.set_timedelta()
     update_interface()
 
@@ -607,6 +608,11 @@ def update_session(*args):
     # root._app.update_idletasks()
 
     session.used = list(map(lambda var: var.get(), usage))
+
+    if root.sync_method.get():  # Синхронизация по точке начала фронта
+        session.wavefront_mode = True
+    else:
+        session.wavefront_mode = False
 
     if root.calibration_type.get():  # Относительная калибровка
         session.T_rel_cal = root.T_cal.get()

@@ -144,9 +144,11 @@ class Channel:
     def time_synced(self) -> np.ndarray:  # ход времени с учетом смещения
         return self.time - self.timedelta
 
-    def find_peak(self) -> tuple:
+    def find_peak(self, wavefront=False) -> tuple:
         self.log.print("Channel #{} :: find_peak()".format(self.number))
         peak = np.argmax(self.data)
+        if wavefront:
+            peak = np.argmax(np.diff(self.data)) - 1
         return self.time[peak], self.data[peak]
 
     @property
@@ -237,6 +239,9 @@ class Session:
 
         # Фильтрация
         self.filter_params = initials.filter_parameters
+
+        # Режим синхронизации
+        self.wavefront_mode = False
 
         # Калибровка
         # Абсолютная калибровка
@@ -510,10 +515,10 @@ class Session:
             return
 
         first = self.valid_indexes[0]
-        t0, _ = self.channels[first].find_peak()
+        t0, _ = self.channels[first].find_peak(self.wavefront_mode)
         self.channels[first].timedelta = 0.
         for i in self.valid_indexes[1:]:
-            t1, _ = self.channels[i].find_peak()
+            t1, _ = self.channels[i].find_peak(self.wavefront_mode)
             self.channels[i].timedelta = t1 - t0
 
     def get_bounds(self, t_start: float = None, t_stop: float = None, mode='valid'):
